@@ -6,12 +6,15 @@ import Control.Applicative((<|>))
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Text.Encoding(decodeUtf8)
+import Data.Time(getCurrentTime, utctDay)
 
 import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route, setResponseStatus, Snap, writeText)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 
+import Database(writeSubmission)
 import NameGen(generateName)
+import Submission(Submission(Submission))
 
 main :: IO ()
 main = quickHttpServe site
@@ -46,13 +49,20 @@ handleDownloadItem =
 handleUpload :: Snap ()
 handleUpload =
   do
-    return ()
-    --ps <- getParams
-    --writeText $ asText $ show ps
-    --upImage <- getPostParam "image"
-    --upData  <- getPostParam "data"
-    --let params = upImage <> upData
-    --maybe (writeBS "must specify echo/param in URL") writeBS params
+    sessionID <- getParam "session-id"
+    upImage   <- getParam "image"
+    upData    <- getParam "data"
+    let submissionMaybe = Submission <$> (fmap decodeUtf8 sessionID) <*> upImage <*> (fmap decodeUtf8 upData)
+    maybe (notifyBadParams "image or data or session ID") submitIt submissionMaybe
+  where
+    submitIt :: Submission -> Snap ()
+    submitIt sub =
+      do
+        millis     <- liftIO getCurrentTime
+        let currentTime = utctDay millis
+        uploadName <- liftIO generateName
+        liftIO $ writeSubmission currentTime uploadName sub
+        writeText uploadName
 
 notifyBadParams :: Text -> Snap ()
 notifyBadParams paramDesc =
