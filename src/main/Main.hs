@@ -2,12 +2,14 @@ module Main(main) where
 
 import Bizzlelude
 
+import Control.Applicative((<|>))
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Text.Encoding(decodeUtf8)
 
-import Snap.Core(getParam, method, Method(GET, POST), modifyResponse, route, setResponseStatus, Snap, writeText)
+import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route, setResponseStatus, Snap, writeText)
 import Snap.Http.Server(quickHttpServe)
+import Snap.Util.FileServe(serveDirectory)
 
 import NameGen(generateName)
 
@@ -16,10 +18,10 @@ main = quickHttpServe site
 
 site :: Snap ()
 site = route [ ("new-session"                 , method POST handleNewSession)
+             , ("uploads/"                    , method POST handleUpload)
              , ("uploads/:session-id"         , method GET  handleListSession)
              , ("uploads/:session-id/:item-id", method GET  handleDownloadItem)
-             , ("upload"                      , method POST handleUpload)
-             ]
+             ] <|> dir "html" (serveDirectory "html")
 
 handleNewSession :: Snap ()
 handleNewSession =

@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script>
+
+      let domain = "http://localhost:8000";
+
+      let setSessionName = function(name) { document.getElementById('session-name').innerText = name; };
+      let getSessionName = function()     { return document.getElementById('session-name').innerText; };
+
+      window.startSession = function() {
+        $.post(domain + "/new-session", {}, setSessionName);
+      };
+
+      window.sync = function() {
+        let gallery = document.getElementById('gallery');
+        gallery.innerHTML = "";
+        let callback = function(responseText) {
+          let entries = JSON.parse(responseText);
+          entries.forEach(function(entry) {
+            let img = document.createElement("img");
+            img.src = entry.base64Image;
+            img.onclick = function() {
+              let innerCallback = function(responseBody) { alert("Extra data for image is: " + responseBody); };
+              $.get(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName, {}, innerCallback);
+            };
+            gallery.appendChild(img);
+          });
+        };
+        $.get(domain + "/uploads/" + getSessionName(), {}, callback);
+      };
+
+      window.upload = function() {
+        let callback     = function(responseBody) { alert("Uploaded name got the ID: " + responseBody); };
+        let imagePromise =
+          new Promise(
+            function(resolve, reject) {
+              let reader = new FileReader();
+              reader.onloadend = function(event) {
+                resolve(event.target);
+              };
+              reader.readAsDataURL(document.getElementById('upload-image').files[0]);
+            }
+          );
+        let extraData = document.getElementById('upload-extra-data').value;
+        imagePromise.then(function(imageEvent) {
+          if (imageEvent.result) {
+            $.post(domain + "/uploads/", { 'session-id': getSessionName(), image: imageEvent.result, data: extraData }, callback);
+          } else {
+            alert("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error))
+          }
+        })
+      };
+
+    </script>
+  </head>
+  <body>
+    <div id="session-name" style="font-size: 20px;"></div>
+    <div>
+      <input type="button" onclick="startSession()" value="Start a session" />
+    </div>
+    <div>
+      <input type="button" onclick="sync()" value="Sync" />
+      <div id="gallery">
+      </div>
+    </div>
+    <div>
+      <form id="upload-form">
+        <input id="upload-image"      name="upload-image"      type="file" accept="image/*" />
+        <input id="upload-extra-data" name="upload-extra-data" type="text"                  />
+      </form>
+      <input type="button" onclick="upload()" value="Upload" />
+    </div>
+  </body>
+</html>
