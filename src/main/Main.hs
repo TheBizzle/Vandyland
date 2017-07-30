@@ -24,7 +24,8 @@ site = route [ ("new-session"                 , method POST handleNewSession)
 handleNewSession :: Snap ()
 handleNewSession =
   do
-    return ()
+    sessionName <- liftIO generateName
+    writeText sessionName
 
 handleListSession :: Snap ()
 handleListSession =
