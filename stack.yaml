@@ -1,0 +1,10 @@
+resolver: lts-8.23
+
+packages:
+- '.'
+extra-deps:
+- bizzlelude-1.0.1
+
+flags: {}
+
+extra-package-dbs: []

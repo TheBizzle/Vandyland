@@ -1,0 +1,16 @@
+*.exe
+*.dll
+*.hi
+*.log
+*.o
+*.sqlite*
+
+tags
+
+/.ghci
+/.projections.json
+/.stack-work/
+/log/
+/target/
+
+/TODO
