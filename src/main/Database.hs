@@ -31,7 +31,7 @@ SubmissionDB
 |]
 
 writeSubmission :: Day -> Text -> Submission -> IO ()
-writeSubmission timestamp uploadName (Submission sessionName imageBytes extraData) = runSqlite "coreyland.sqlite3" $
+writeSubmission timestamp uploadName (Submission sessionName imageBytes extraData) = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
     let subDB = SubmissionDB sessionName uploadName imageBytes extraData timestamp

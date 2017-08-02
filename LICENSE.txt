@@ -1,4 +1,4 @@
-Coreyland
+Vandyland
 Copyright (c) 2017, Jason Bertsche
 All rights reserved.
 
