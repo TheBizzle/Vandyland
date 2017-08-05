@@ -10,7 +10,6 @@ module Database(retrieveSubmissionData, writeSubmission) where
 
 import Bizzlelude
 
-import Data.ByteString(ByteString)
 import Data.Time(Day)
 
 import Database.Persist((==.), Entity(entityVal), insert, selectFirst, selectList)
@@ -23,7 +22,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 SubmissionDB
     sessionName Text
     uploadName  Text
-    imageBytes  ByteString
+    base64Image Text
     extraData   Text
     dateAdded   Day
     Primary sessionName uploadName
@@ -37,8 +36,8 @@ retrieveSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
     sub <- selectFirst [SubmissionDBSessionName ==. sessionName, SubmissionDBUploadName ==. uploadName] []
     return $ map (entityVal >>> extractData) sub
 
-writeSubmission :: Day -> Text -> Submission -> IO ()
-writeSubmission timestamp uploadName (Submission sessionName imageBytes extraData) = runSqlite "vandyland.sqlite3" $
+writeSubmission :: Day -> Text -> Text -> Text -> Text -> IO ()
+writeSubmission timestamp uploadName sessionName imageBytes extraData = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
     let subDB = SubmissionDB sessionName uploadName imageBytes extraData timestamp

@@ -14,7 +14,6 @@ import Snap.Util.FileServe(serveDirectory)
 
 import Database(retrieveSubmissionData, writeSubmission)
 import NameGen(generateName)
-import Submission(Submission(Submission))
 
 main :: IO ()
 main = quickHttpServe site
@@ -57,16 +56,16 @@ handleUpload =
     sessionID <- getParam "session-id"
     upImage   <- getParam "image"
     upData    <- getParam "data"
-    let submissionMaybe = Submission <$> (fmap decodeUtf8 sessionID) <*> upImage <*> (fmap decodeUtf8 upData)
-    maybe (notifyBadParams "image or data or session ID") submitIt submissionMaybe
+    let tupleMaybe = (,,) <$> (fmap decodeUtf8 sessionID) <*> (fmap decodeUtf8 upImage) <*> (fmap decodeUtf8 upData)
+    maybe (notifyBadParams "image or data or session ID") submitIt tupleMaybe
   where
-    submitIt :: Submission -> Snap ()
-    submitIt sub =
+    submitIt :: (Text, Text, Text) -> Snap ()
+    submitIt (sessionName, image, extraData) =
       do
         millis     <- liftIO getCurrentTime
         let currentTime = utctDay millis
         uploadName <- liftIO generateName
-        liftIO $ writeSubmission currentTime uploadName sub
+        liftIO $ writeSubmission currentTime uploadName sessionName image extraData
         writeText uploadName
 
 notifyBadParams :: Text -> Snap ()
