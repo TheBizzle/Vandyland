@@ -21,7 +21,7 @@ main = quickHttpServe site
 
 site :: Snap ()
 site = route [ ("new-session"                 , method POST handleNewSession)
-             , ("uploads/"                    , method POST handleUpload)
+             , ("uploads"                     , method POST handleUpload)
              , ("uploads/:session-id"         , method GET  handleListSession)
              , ("uploads/:session-id/:item-id", method GET  handleDownloadItem)
              ] <|> dir "html" (serveDirectory "html")
