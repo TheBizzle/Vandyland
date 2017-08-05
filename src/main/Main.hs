@@ -12,7 +12,7 @@ import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 
-import Database(writeSubmission)
+import Database(retrieveSubmissionData, writeSubmission)
 import NameGen(generateName)
 import Submission(Submission(Submission))
 
@@ -43,8 +43,13 @@ handleDownloadItem =
   do
     sessionID <- getParam "session-id"
     uploadID  <- getParam "item-id"
-    let params = sessionID <> uploadID
-    maybe (notifyBadParams "session ID or item ID") (decodeUtf8 >>> writeText) params
+    let params = (,) <$> sessionID <*> uploadID
+    maybe (notifyBadParams "session ID or item ID") helper params
+  where
+    helper ps =
+      do
+        dataMaybe <- ps |> ((decodeUtf8 *** decodeUtf8) >>> (uncurry retrieveSubmissionData) >>> liftIO)
+        maybe ((modifyResponse $ setResponseStatus 404 "Not Found") >> (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
 
 handleUpload :: Snap ()
 handleUpload =

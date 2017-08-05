@@ -6,7 +6,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(writeSubmission) where
+module Database(retrieveSubmissionData, writeSubmission) where
 
 import Bizzlelude
 
@@ -30,6 +30,13 @@ SubmissionDB
     deriving Show
 |]
 
+retrieveSubmissionData :: Text -> Text -> IO (Maybe Text)
+retrieveSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
+  do
+    runMigration migrateAll
+    sub <- selectFirst [SubmissionDBSessionName ==. sessionName, SubmissionDBUploadName ==. uploadName] []
+    return $ map (entityVal >>> extractData) sub
+
 writeSubmission :: Day -> Text -> Submission -> IO ()
 writeSubmission timestamp uploadName (Submission sessionName imageBytes extraData) = runSqlite "vandyland.sqlite3" $
   do
@@ -37,3 +44,6 @@ writeSubmission timestamp uploadName (Submission sessionName imageBytes extraDat
     let subDB = SubmissionDB sessionName uploadName imageBytes extraData timestamp
     _ <- insert subDB
     return ()
+
+extractData :: SubmissionDB -> Text
+extractData (SubmissionDB _ _ _ extraData _) = extraData
