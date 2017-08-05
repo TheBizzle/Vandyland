@@ -5,14 +5,18 @@ import Bizzlelude
 import Control.Applicative((<|>))
 import Control.Monad.IO.Class(liftIO)
 
+import Data.Aeson(encode)
 import Data.Text.Encoding(decodeUtf8)
 import Data.Time(getCurrentTime, utctDay)
+
+import qualified Data.Text.Lazy          as LazyText
+import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
 
 import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route, setResponseStatus, Snap, writeText)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 
-import Database(retrieveSubmissionData, writeSubmission)
+import Database(readSubmissionsForSession, retrieveSubmissionData, writeSubmission)
 import NameGen(generateName)
 
 main :: IO ()
@@ -35,7 +39,12 @@ handleListSession :: Snap ()
 handleListSession =
   do
     param <- getParam "session-id"
-    maybe (notifyBadParams "session ID") (decodeUtf8 >>> writeText) param
+    maybe (notifyBadParams "session ID") helper param
+  where
+    helper sessionID =
+      do
+        submissions <- liftIO $ readSubmissionsForSession $ decodeUtf8 sessionID
+        writeText $ LazyText.toStrict $ LazyTextEncoding.decodeUtf8 $ encode submissions
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
