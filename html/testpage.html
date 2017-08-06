@@ -32,6 +32,7 @@
 
       window.upload = function() {
         let callback     = function(responseBody) { alert("Uploaded name got the ID: " + responseBody); };
+        let failback     = function() { alert(JSON.stringify(arguments)); };
         let imagePromise =
           new Promise(
             function(resolve, reject) {
@@ -45,7 +46,7 @@
         let extraData = document.getElementById('upload-extra-data').value;
         imagePromise.then(function(imageEvent) {
           if (imageEvent.result) {
-            $.post(domain + "/uploads/", { 'session-id': getSessionName(), image: imageEvent.result, data: extraData }, callback);
+              $.post(domain + "/uploads/", { 'session-id': getSessionName(), image: imageEvent.result, data: extraData }, callback).fail(failback);
           } else {
             alert("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error))
           }
