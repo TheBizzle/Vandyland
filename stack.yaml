@@ -1,10 +1,11 @@
-resolver: lts-8.23
-
+flags: {}
+extra-package-dbs: []
 packages:
 - '.'
 extra-deps:
 - bizzlelude-1.0.1
-
-flags: {}
-
-extra-package-dbs: []
+- heist-1.0.1.0
+- map-syntax-0.2.0.2
+- snap-1.0.0.1
+- snap-cors-1.2.11
+resolver: lts-8.23

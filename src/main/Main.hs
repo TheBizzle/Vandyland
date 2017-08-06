@@ -17,6 +17,7 @@ import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
 
 import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route, setResponseStatus, Snap, writeText)
+import Snap.CORS(applyCORS, defaultOptions)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 
@@ -27,10 +28,10 @@ main :: IO ()
 main = quickHttpServe site
 
 site :: Snap ()
-site = route [ ("new-session"                 , method POST handleNewSession)
-             , ("uploads"                     , method POST handleUpload)
-             , ("uploads/:session-id"         , method GET  handleListSession)
-             , ("uploads/:session-id/:item-id", method GET  handleDownloadItem)
+site = route [ ("new-session"                 , allowingCORS POST handleNewSession)
+             , ("uploads"                     , allowingCORS POST handleUpload)
+             , ("uploads/:session-id"         , allowingCORS GET  handleListSession)
+             , ("uploads/:session-id/:item-id", allowingCORS GET  handleDownloadItem)
              ] <|> dir "html" (serveDirectory "html")
 
 handleNewSession :: Snap ()
@@ -86,6 +87,9 @@ getParamV paramName =
   do
     param <- getParam paramName
     return $ maybe (_Failure # [decodeUtf8 paramName]) (\x -> _Success # (decodeUtf8 x)) param
+
+allowingCORS :: Method -> Snap () -> Snap ()
+allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
 
 notifyBadParams :: [Text] -> Snap ()
 notifyBadParams params =
