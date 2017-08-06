@@ -42,45 +42,50 @@ handleNewSession =
 
 handleListSession :: Snap ()
 handleListSession =
-  do
-    param <- getParamV "session-id"
-    bimapM_ notifyBadParams helper param
-  where
-    helper sessionID =
-      do
-        submissions <- liftIO $ readSubmissionsForSession sessionID
-        writeText $ LazyText.toStrict $ LazyTextEncoding.decodeUtf8 $ encode submissions
+  handle1 "session-id" $ \sessionID ->
+    do
+      submissions <- liftIO $ readSubmissionsForSession sessionID
+      writeText $ LazyText.toStrict $ LazyTextEncoding.decodeUtf8 $ encode submissions
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
-  do
-    sessionID <- getParamV "session-id"
-    uploadID  <- getParamV "item-id"
-    let params = (,) <$> sessionID <*> uploadID
-    bimapM_ notifyBadParams helper params
-  where
-    helper ps =
-      do
-        dataMaybe <- liftIO $ (uncurry retrieveSubmissionData) ps
-        maybe ((modifyResponse $ setResponseStatus 404 "Not Found") >> (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
+  handle2 ("session-id", "item-id") $ \ps ->
+    do
+      dataMaybe <- liftIO $ (uncurry retrieveSubmissionData) ps
+      maybe ((modifyResponse $ setResponseStatus 404 "Not Found") >> (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
 
 handleUpload :: Snap ()
 handleUpload =
+  handle3 ("session-id", "image", "data") $ \(sessionName, image, extraData) ->
+    do
+      millis     <- liftIO getCurrentTime
+      let currentTime = utctDay millis
+      uploadName <- liftIO generateName
+      liftIO $ writeSubmission currentTime uploadName sessionName image extraData
+      writeText uploadName
+
+handle1 :: ByteString -> (Text -> Snap ()) -> Snap ()
+handle1 argName onSuccess =
   do
-    sessionID <- getParamV "session-id"
-    upImage   <- getParamV "image"
-    upData    <- getParamV "data"
-    let tupleV = (,,) <$> sessionID <*> upImage <*> upData
-    bimapM_ notifyBadParams submitIt tupleV
-  where
-    submitIt :: (Text, Text, Text) -> Snap ()
-    submitIt (sessionName, image, extraData) =
-      do
-        millis     <- liftIO getCurrentTime
-        let currentTime = utctDay millis
-        uploadName <- liftIO generateName
-        liftIO $ writeSubmission currentTime uploadName sessionName image extraData
-        writeText uploadName
+    arg <- getParamV argName
+    bimapM_ notifyBadParams onSuccess arg
+
+handle2 :: (ByteString, ByteString) -> ((Text, Text) -> Snap ()) -> Snap ()
+handle2 (arg1Name, arg2Name) onSuccess =
+  do
+    arg1 <- getParamV arg1Name
+    arg2 <- getParamV arg2Name
+    let tupleV = (,) <$> arg1 <*> arg2
+    bimapM_ notifyBadParams onSuccess tupleV
+
+handle3 :: (ByteString, ByteString, ByteString) -> ((Text, Text, Text) -> Snap ()) -> Snap ()
+handle3 (arg1Name, arg2Name, arg3Name) onSuccess =
+  do
+    arg1 <- getParamV arg1Name
+    arg2 <- getParamV arg2Name
+    arg3 <- getParamV arg3Name
+    let tupleV = (,,) <$> arg1 <*> arg2 <*> arg3
+    bimapM_ notifyBadParams onSuccess tupleV
 
 getParamV :: ByteString -> Snap (AccValidation [Text] Text)
 getParamV paramName =
