@@ -3,11 +3,15 @@ module Main(main) where
 import Bizzlelude
 
 import Control.Applicative((<|>))
+import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Aeson(encode)
+import Data.Bifoldable(bimapM_)
+import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8)
 import Data.Time(getCurrentTime, utctDay)
+import Data.Validation(_Failure, _Success, AccValidation)
 
 import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
@@ -38,35 +42,35 @@ handleNewSession =
 handleListSession :: Snap ()
 handleListSession =
   do
-    param <- getParam "session-id"
-    maybe (notifyBadParams "session ID") helper param
+    param <- getParamV "session-id"
+    bimapM_ notifyBadParams helper param
   where
     helper sessionID =
       do
-        submissions <- liftIO $ readSubmissionsForSession $ decodeUtf8 sessionID
+        submissions <- liftIO $ readSubmissionsForSession sessionID
         writeText $ LazyText.toStrict $ LazyTextEncoding.decodeUtf8 $ encode submissions
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
   do
-    sessionID <- getParam "session-id"
-    uploadID  <- getParam "item-id"
+    sessionID <- getParamV "session-id"
+    uploadID  <- getParamV "item-id"
     let params = (,) <$> sessionID <*> uploadID
-    maybe (notifyBadParams "session ID or item ID") helper params
+    bimapM_ notifyBadParams helper params
   where
     helper ps =
       do
-        dataMaybe <- ps |> ((decodeUtf8 *** decodeUtf8) >>> (uncurry retrieveSubmissionData) >>> liftIO)
+        dataMaybe <- liftIO $ (uncurry retrieveSubmissionData) ps
         maybe ((modifyResponse $ setResponseStatus 404 "Not Found") >> (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
 
 handleUpload :: Snap ()
 handleUpload =
   do
-    sessionID <- getParam "session-id"
-    upImage   <- getParam "image"
-    upData    <- getParam "data"
-    let tupleMaybe = (,,) <$> (fmap decodeUtf8 sessionID) <*> (fmap decodeUtf8 upImage) <*> (fmap decodeUtf8 upData)
-    maybe (notifyBadParams "image or data or session ID") submitIt tupleMaybe
+    sessionID <- getParamV "session-id"
+    upImage   <- getParamV "image"
+    upData    <- getParamV "data"
+    let tupleV = (,,) <$> sessionID <*> upImage <*> upData
+    bimapM_ notifyBadParams submitIt tupleV
   where
     submitIt :: (Text, Text, Text) -> Snap ()
     submitIt (sessionName, image, extraData) =
@@ -77,8 +81,14 @@ handleUpload =
         liftIO $ writeSubmission currentTime uploadName sessionName image extraData
         writeText uploadName
 
-notifyBadParams :: Text -> Snap ()
-notifyBadParams paramDesc =
+getParamV :: ByteString -> Snap (AccValidation [Text] Text)
+getParamV paramName =
+  do
+    param <- getParam paramName
+    return $ maybe (_Failure # [decodeUtf8 paramName]) (\x -> _Success # (decodeUtf8 x)) param
+
+notifyBadParams :: [Text] -> Snap ()
+notifyBadParams params =
   do
     modifyResponse $ setResponseStatus 422 "Unprocessable Entity"
-    writeText $ "Missing parameter(s): " <> paramDesc
+    params |> ((fmap ("Missing parameter: " <>)) >>> unlines >>> writeText)
