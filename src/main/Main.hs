@@ -24,6 +24,11 @@ import Snap.Util.FileServe(serveDirectory)
 import Database(readSubmissionsForSession, retrieveSubmissionData, writeSubmission)
 import NameGen(generateName)
 
+data Constraint
+  = NonEmpty
+
+type Arg = (ByteString, [Constraint])
+
 main :: IO ()
 main = quickHttpServe site
 
@@ -38,18 +43,18 @@ handleNewSession :: Snap ()
 handleNewSession = generateName |> (liftIO >=> writeText)
 
 handleListSession :: Snap ()
-handleListSession = handle1 "session-id" $ readSubmissionsForSession >>> liftIO >=> encodeText >>> writeText
+handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionsForSession >>> liftIO >=> encodeText >>> writeText
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
-  handle2 ("session-id", "item-id") $ \ps ->
+  handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ \ps ->
     do
       dataMaybe <- liftIO $ (uncurry retrieveSubmissionData) ps
       maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
 
 handleUpload :: Snap ()
 handleUpload =
-  handle3 ("session-id", "image", "data") $ \(sessionName, image, extraData) ->
+  handle3 (("session-id", [NonEmpty]), ("image", []), ("data", [])) $ \(sessionName, image, extraData) ->
     do
       millis     <- liftIO getCurrentTime
       let currentTime = utctDay millis
@@ -57,37 +62,43 @@ handleUpload =
       liftIO $ writeSubmission currentTime uploadName sessionName image extraData
       writeText uploadName
 
-handle1 :: ByteString -> (Text -> Snap ()) -> Snap ()
-handle1 argName onSuccess =
+handle1 :: Arg -> (Text -> Snap ()) -> Snap ()
+handle1 arg onSuccess =
   do
-    arg <- getParamV argName
+    arg <- getParamV arg
     bimapM_ notifyBadParams onSuccess arg
 
-handle2 :: (ByteString, ByteString) -> ((Text, Text) -> Snap ()) -> Snap ()
-handle2 (arg1Name, arg2Name) onSuccess =
+handle2 :: (Arg, Arg) -> ((Text, Text) -> Snap ()) -> Snap ()
+handle2 (arg1, arg2) onSuccess =
   do
-    arg1 <- getParamV arg1Name
-    arg2 <- getParamV arg2Name
+    arg1 <- getParamV arg1
+    arg2 <- getParamV arg2
     let tupleV = (,) <$> arg1 <*> arg2
     bimapM_ notifyBadParams onSuccess tupleV
 
-handle3 :: (ByteString, ByteString, ByteString) -> ((Text, Text, Text) -> Snap ()) -> Snap ()
-handle3 (arg1Name, arg2Name, arg3Name) onSuccess =
+handle3 :: (Arg, Arg, Arg) -> ((Text, Text, Text) -> Snap ()) -> Snap ()
+handle3 (arg1, arg2, arg3) onSuccess =
   do
-    arg1 <- getParamV arg1Name
-    arg2 <- getParamV arg2Name
-    arg3 <- getParamV arg3Name
+    arg1 <- getParamV arg1
+    arg2 <- getParamV arg2
+    arg3 <- getParamV arg3
     let tupleV = (,,) <$> arg1 <*> arg2 <*> arg3
     bimapM_ notifyBadParams onSuccess tupleV
 
 encodeText :: ToJSON a => a -> Text
 encodeText = encode >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict
 
-getParamV :: ByteString -> Snap (AccValidation [Text] Text)
-getParamV paramName =
+getParamV :: Arg -> Snap (AccValidation [Text] Text)
+getParamV (paramName, constraints) =
   do
     param <- getParam paramName
-    return $ maybe (_Failure # [decodeUtf8 paramName]) (\x -> _Success # (decodeUtf8 x)) param
+    let deconstrained = deconstrain constraints param
+    return $ maybe (_Failure # [decodeUtf8 paramName]) (\x -> _Success # (decodeUtf8 x)) deconstrained
+  where
+    deconstrain _              Nothing = Nothing
+    deconstrain []                   x = x
+    deconstrain (NonEmpty:_) (Just "") = Nothing
+    deconstrain (NonEmpty:t)         x = deconstrain t x
 
 allowingCORS :: Method -> Snap () -> Snap ()
 allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
