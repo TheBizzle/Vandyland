@@ -16,7 +16,7 @@ import Data.Validation(_Failure, _Success, AccValidation)
 import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
 
-import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route, setResponseStatus, Snap, writeText)
+import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route, setContentType, setResponseStatus, Snap, writeText)
 import Snap.CORS(applyCORS, defaultOptions)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
@@ -43,14 +43,14 @@ handleNewSession :: Snap ()
 handleNewSession = generateName |> (liftIO >=> writeText)
 
 handleListSession :: Snap ()
-handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionsForSession >>> liftIO >=> encodeText >>> writeText
+handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionsForSession >>> liftIO >=> encodeText >>> (succeed "application/json")
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
   handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ \ps ->
     do
       dataMaybe <- liftIO $ (uncurry retrieveSubmissionData) ps
-      maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
+      maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) (succeed "text/plain") dataMaybe
 
 handleUpload :: Snap ()
 handleUpload =
@@ -115,3 +115,9 @@ failWith x snap =
     statusName 404 = "Not Found"
     statusName 422 = "Unprocessable Entity"
     statusName _   = error "Unhandled status"
+
+succeed :: ByteString -> Text -> Snap ()
+succeed contentType output =
+  do
+    modifyResponse $ setContentType contentType
+    writeText output
