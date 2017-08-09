@@ -6,7 +6,7 @@ import Control.Applicative((<|>))
 import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
-import Data.Aeson(encode)
+import Data.Aeson(encode, ToJSON)
 import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8)
@@ -35,24 +35,17 @@ site = route [ ("new-session"                 , allowingCORS POST handleNewSessi
              ] <|> dir "html" (serveDirectory "html")
 
 handleNewSession :: Snap ()
-handleNewSession =
-  do
-    sessionName <- liftIO generateName
-    writeText sessionName
+handleNewSession = generateName |> (liftIO >=> writeText)
 
 handleListSession :: Snap ()
-handleListSession =
-  handle1 "session-id" $ \sessionID ->
-    do
-      submissions <- liftIO $ readSubmissionsForSession sessionID
-      writeText $ LazyText.toStrict $ LazyTextEncoding.decodeUtf8 $ encode submissions
+handleListSession = handle1 "session-id" $ readSubmissionsForSession >>> liftIO >=> encodeText >>> writeText
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
   handle2 ("session-id", "item-id") $ \ps ->
     do
       dataMaybe <- liftIO $ (uncurry retrieveSubmissionData) ps
-      maybe ((modifyResponse $ setResponseStatus 404 "Not Found") >> (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
+      maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) writeText dataMaybe
 
 handleUpload :: Snap ()
 handleUpload =
@@ -87,6 +80,9 @@ handle3 (arg1Name, arg2Name, arg3Name) onSuccess =
     let tupleV = (,,) <$> arg1 <*> arg2 <*> arg3
     bimapM_ notifyBadParams onSuccess tupleV
 
+encodeText :: ToJSON a => a -> Text
+encodeText = encode >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict
+
 getParamV :: ByteString -> Snap (AccValidation [Text] Text)
 getParamV paramName =
   do
@@ -97,7 +93,14 @@ allowingCORS :: Method -> Snap () -> Snap ()
 allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
 
 notifyBadParams :: [Text] -> Snap ()
-notifyBadParams params =
+notifyBadParams = (fmap ("Missing parameter: " <>)) >>> unlines >>> writeText >>> (failWith 422)
+
+failWith :: Int -> Snap () -> Snap ()
+failWith x snap =
   do
-    modifyResponse $ setResponseStatus 422 "Unprocessable Entity"
-    params |> ((fmap ("Missing parameter: " <>)) >>> unlines >>> writeText)
+    modifyResponse $ setResponseStatus x $ statusName x
+    snap
+  where
+    statusName 404 = "Not Found"
+    statusName 422 = "Unprocessable Entity"
+    statusName _   = error "Unhandled status"
