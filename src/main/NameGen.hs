@@ -6,11 +6,7 @@ import Data.List((!!))
 import System.Random(randomRIO)
 
 generateName :: IO Text
-generateName =
-  do
-    adjective <- randomOneOf adjectives
-    animal    <- randomOneOf animals
-    return $ adjective <> animal
+generateName = (\x y -> x <> y) <$> (randomOneOf adjectives) <*> (randomOneOf animals)
 
 randomOneOf :: [a] -> IO a
 randomOneOf xs =
