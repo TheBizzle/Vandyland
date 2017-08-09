@@ -1,39 +1,81 @@
 <html>
   <head>
+
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script>
 
       let domain = "http://localhost:8000";
 
+      let uploadInterval = undefined;
+      let lastUploadTime = 0;
+
       let setSessionName = function(name) { document.getElementById('session-name').innerText = name; };
       let getSessionName = function()     { return document.getElementById('session-name').innerText; };
 
-      window.startSession = function() {
-        $.post(domain + "/new-session", {}, setSessionName);
+      window.onEnter = function(f) { return function(e) { if (e.keyCode === 13) { return f(e); } }; };
+
+      window.startSession = function(e) {
+
+        document.getElementById("landing-area").style.display = "none";
+        document.getElementById("main-content").style.display = "";
+
+        let startup = function(sessionName) {
+          setSessionName(sessionName);
+          uploadInterval = setInterval(sync, 10000);
+        };
+
+        if (e === undefined) {
+          $.post(domain + "/new-session", {}, startup);
+        } else {
+          startup(e.target.value);
+          sync()
+        }
+
       };
 
-      window.sync = function() {
+      let sync = function() {
         let gallery = document.getElementById('gallery');
         gallery.innerHTML = "";
-        let callback = function(responseText) {
-          let entries = responseText;
+        let callback = function(entries) {
           entries.forEach(function(entry) {
+
             let img = document.createElement("img");
+            img.style = "max-width: 230px; max-height: 230px;"
             img.src = entry.base64Image;
             img.onclick = function() {
               let innerCallback = function(responseBody) { alert("Extra data for image is: " + responseBody); };
               $.get(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName, {}, innerCallback);
             };
-            gallery.appendChild(img);
+
+            let label = document.createElement("span");
+            label.textContent = entry.uploadName;
+
+            let container = document.createElement("div")
+            container.appendChild(img);
+            container.appendChild(label);
+            container.style = "padding: 8px; height: 245px; width: 245px; display: flex; flex-direction: column; align-items: center;";
+
+            gallery.appendChild(container);
+
           });
         };
         $.get(domain + "/uploads/" + getSessionName(), {}, callback);
       };
 
-      window.upload = function() {
-        let callback     = function(responseBody) { alert("Uploaded name got the ID: " + responseBody); };
-        let failback     = function() { alert(JSON.stringify(arguments)); };
-        let imagePromise =
+      window.upload = function(e) {
+
+        e.preventDefault();
+
+        if ((new Date().getTime() - lastUploadTime) > 1000) {
+
+          let callback = function(responseBody) {
+            clearInterval(uploadInterval);
+            sync();
+            uploadInterval = setInterval(sync, 10000);
+          };
+
+          let failback = function() { alert(JSON.stringify(arguments)); };
+
           new Promise(
             function(resolve, reject) {
               let reader = new FileReader();
@@ -42,35 +84,54 @@
               };
               reader.readAsDataURL(document.getElementById('upload-image').files[0]);
             }
-          );
-        let extraData = document.getElementById('upload-extra-data').value;
-        imagePromise.then(function(imageEvent) {
-          if (imageEvent.result) {
+          ).then(function(imageEvent) {
+            if (imageEvent.result) {
+              let extraData = document.getElementById('upload-extra-data').value;
               $.post(domain + "/uploads/", { 'session-id': getSessionName(), image: imageEvent.result, data: extraData }, callback).fail(failback);
-          } else {
-            alert("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error))
-          }
-        })
+            } else {
+              alert("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error))
+            }
+          });
+
+          lastUploadTime = new Date().getTime();
+
+        }
+
+        return false;
+
       };
 
     </script>
   </head>
+
   <body>
-    <div id="session-name" style="font-size: 20px;"></div>
-    <div>
-      <input type="button" onclick="startSession()" value="Start a session" />
+    <div id="landing-area">
+        <input type="button" onclick="startSession()" value="Initiate a session" style="height: 28px;" />
+        <span style="font-weight: bold;">-OR-</span>
+        <label>join the session with this name: <input type="text" style="font-size: 24px;" onkeypress="onEnter(startSession)(event)" /></label>
     </div>
-    <div>
-      <input type="button" onclick="sync()" value="Sync" />
-      <div id="gallery">
-      </div>
-    </div>
-    <div>
-      <form id="upload-form">
-        <input id="upload-image"      name="upload-image"      type="file" accept="image/*" />
-        <input id="upload-extra-data" name="upload-extra-data" type="text"                  />
+    <div id="main-content" style="display: none;">
+      <div style="font-size: 24px; font-weight: bold; margin-bottom: 25px;">Session Name: <span id="session-name" style="color: #00a9ff"></span></div>
+      <form id="upload-form" style="margin-bottom: 25px;">
+        <fieldset style="width: 300px; border: 2px solid black; border-radius: 4px; padding: 5px;">
+          <legend>Submit an item</legend>
+          <label>Image: <input id="upload-image"      name="upload-image"      type="file" accept="image/*" required /></label><br>
+          <div style="height: 10px;"></div>
+          <label>Data:  <input id="upload-extra-data" name="upload-extra-data" type="text"                  required /></label><br>
+          <div style="height: 10px;"></div>
+          <input type="submit" value="Upload" />
+        </fieldset>
       </form>
-      <input type="button" onclick="upload()" value="Upload" />
+      <div id="gallery" style="min-height: 600px; width: 785px; display: flex; flex-direction: row; flex-wrap: wrap; border: 2px solid black; border-radius: 4px;"></div>
     </div>
   </body>
+  <script>
+
+    let uploadForm = document.getElementById("upload-form");
+
+    uploadForm.addEventListener('keyup',  onEnter(upload));
+    uploadForm.addEventListener('submit', upload);
+
+  </script>
+
 </html>
