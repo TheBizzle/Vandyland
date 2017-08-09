@@ -16,7 +16,7 @@
         let gallery = document.getElementById('gallery');
         gallery.innerHTML = "";
         let callback = function(responseText) {
-          let entries = JSON.parse(responseText);
+          let entries = responseText;
           entries.forEach(function(entry) {
             let img = document.createElement("img");
             img.src = entry.base64Image;

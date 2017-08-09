@@ -20,6 +20,7 @@ import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route
 import Snap.CORS(applyCORS, defaultOptions)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
+import Snap.Util.GZip(withCompression)
 
 import Database(readSubmissionsForSession, retrieveSubmissionData, writeSubmission)
 import NameGen(generateName)
@@ -33,10 +34,10 @@ main :: IO ()
 main = quickHttpServe site
 
 site :: Snap ()
-site = route [ ("new-session"                 , allowingCORS POST handleNewSession)
-             , ("uploads"                     , allowingCORS POST handleUpload)
-             , ("uploads/:session-id"         , allowingCORS GET  handleListSession)
-             , ("uploads/:session-id/:item-id", allowingCORS GET  handleDownloadItem)
+site = route [ ("new-session"                 ,                   allowingCORS POST handleNewSession)
+             , ("uploads"                     ,                   allowingCORS POST handleUpload)
+             , ("uploads/:session-id"         , withCompression $ allowingCORS GET  handleListSession)
+             , ("uploads/:session-id/:item-id", withCompression $ allowingCORS GET  handleDownloadItem)
              ] <|> dir "html" (serveDirectory "html")
 
 handleNewSession :: Snap ()
