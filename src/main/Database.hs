@@ -12,6 +12,8 @@ import Bizzlelude
 
 import Data.Time(Day)
 
+import qualified Data.Text as Text
+
 import Database.Persist((==.), Entity(entityVal), insert, selectFirst, selectList)
 import Database.Persist.Sqlite(runMigration, runSqlite)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
@@ -33,21 +35,21 @@ readSubmissionsForSession :: Text -> IO [Submission]
 readSubmissionsForSession sessionName = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
-    rows <- selectList [SubmissionDBSessionName ==. sessionName] []
+    rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] []
     return $ map (entityVal >>> dbToSubmission) rows
 
 retrieveSubmissionData :: Text -> Text -> IO (Maybe Text)
 retrieveSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
-    sub <- selectFirst [SubmissionDBSessionName ==. sessionName, SubmissionDBUploadName ==. uploadName] []
+    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
     return $ map (entityVal >>> extractData) sub
 
 writeSubmission :: Day -> Text -> Text -> Text -> Text -> IO ()
 writeSubmission timestamp uploadName sessionName imageBytes extraData = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
-    let subDB = SubmissionDB sessionName uploadName imageBytes extraData timestamp
+    let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes extraData timestamp
     _ <- insert subDB
     return ()
 
