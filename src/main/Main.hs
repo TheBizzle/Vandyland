@@ -1,8 +1,10 @@
+{-# LANGUAGE TupleSections #-}
 module Main(main) where
 
 import Bizzlelude
 
 import Control.Applicative((<|>))
+import Control.Exception(throwIO)
 import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
@@ -10,9 +12,11 @@ import Data.Aeson(encode, ToJSON)
 import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8)
+import Data.Text.IO(readFile)
 import Data.Time(getCurrentTime, utctDay)
 import Data.Validation(_Failure, _Success, AccValidation)
 
+import qualified Data.Map                as Map
 import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
 
@@ -20,7 +24,10 @@ import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route
 import Snap.CORS(applyCORS, defaultOptions)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
+import Snap.Util.FileUploads(allowWithMaximumSize, defaultUploadPolicy, handleFileUploads, PartInfo(partFileName))
 import Snap.Util.GZip(withCompression)
+
+import System.Directory(createDirectoryIfMissing)
 
 import Database(readSubmissionsForSession, retrieveSubmissionData, writeSubmission)
 import NameGen(generateName)
@@ -36,9 +43,24 @@ main = quickHttpServe site
 site :: Snap ()
 site = route [ ("new-session"                 ,                   allowingCORS POST handleNewSession)
              , ("uploads"                     ,                   allowingCORS POST handleUpload)
+             , ("echo"                        ,                   allowingCORS POST handleEchoData)
              , ("uploads/:session-id"         , withCompression $ allowingCORS GET  handleListSession)
              , ("uploads/:session-id/:item-id", withCompression $ allowingCORS GET  handleDownloadItem)
              ] <|> dir "html" (serveDirectory "html")
+
+handleEchoData :: Snap ()
+handleEchoData =
+  do
+    liftIO $ createDirectoryIfMissing True dir
+    fileMappings <- handleFileUploads dir defaultUploadPolicy (const $ allowWithMaximumSize 20000000) handleRead
+    let dataMaybe = Map.lookup paramName (Map.fromList fileMappings)
+    maybe (notifyBadParams [paramName]) writeText dataMaybe
+  where
+    paramName = "data"
+    dir       = "dist/filetmp"
+    handleRead partInfo = either throwIO (readFile >>> liftIO >=> ((paramName, ) >>> return))
+      where
+        paramName = partInfo |> (partFileName >>> (fromMaybe "-") >>> decodeUtf8)
 
 handleNewSession :: Snap ()
 handleNewSession = generateName |> (liftIO >=> writeText)
