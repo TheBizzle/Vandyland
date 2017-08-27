@@ -1,7 +1,6 @@
 <html>
   <head>
 
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script>
 
       let domain = "http://localhost:8000";
@@ -25,7 +24,7 @@
         };
 
         if (e === undefined) {
-          $.post(domain + "/new-session", {}, startup);
+          fetch(domain + "/new-session", { method: "POST" }).then((x) => x.text()).then(startup);
         } else {
           startup(e.target.value);
           sync()
@@ -44,7 +43,7 @@
             img.src = entry.base64Image;
             img.onclick = function() {
               let innerCallback = function(responseBody) { alert("Extra data for image is: " + responseBody); };
-              $.get(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName, {}, innerCallback);
+              fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName).then((x) => x.text()).then(innerCallback);
             };
 
             let label = document.createElement("span");
@@ -59,7 +58,7 @@
 
           });
         };
-        $.get(domain + "/uploads/" + getSessionName(), {}, callback);
+        fetch(domain + "/uploads/" + getSessionName()).then((x) => x.json()).then(callback);
       };
 
       window.upload = function(e) {
@@ -86,12 +85,15 @@
             }
           ).then(function(imageEvent) {
             if (imageEvent.result) {
-              let extraData = document.getElementById('upload-extra-data').value;
-              $.post(domain + "/uploads/", { 'session-id': getSessionName(), image: imageEvent.result, data: extraData }, callback).fail(failback);
+              let formData = new FormData(document.getElementById("upload-form"));
+              formData.set("image", imageEvent.result);
+              formData.append("session-id", getSessionName());
+              let params = Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+              fetch(domain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(callback, failback);
             } else {
-              alert("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error))
+              reject("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error));
             }
-          });
+          }).then(callback, failback);
 
           lastUploadTime = new Date().getTime();
 
@@ -115,9 +117,9 @@
       <form id="upload-form" style="margin-bottom: 25px;">
         <fieldset style="width: 300px; border: 2px solid black; border-radius: 4px; padding: 5px;">
           <legend>Submit an item</legend>
-          <label>Image: <input id="upload-image"      name="upload-image"      type="file" accept="image/*" required /></label><br>
+          <label>Image: <input id="upload-image"      name="image" type="file" accept="image/*" required /></label><br>
           <div style="height: 10px;"></div>
-          <label>Data:  <input id="upload-extra-data" name="upload-extra-data" type="text"                  required /></label><br>
+          <label>Data:  <input id="upload-extra-data" name="data"  type="text"                  required /></label><br>
           <div style="height: 10px;"></div>
           <input type="submit" value="Upload" />
         </fieldset>
