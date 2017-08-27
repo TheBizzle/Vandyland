@@ -4,7 +4,6 @@ module Main(main) where
 import Bizzlelude
 
 import Control.Applicative((<|>))
-import Control.Exception(throwIO)
 import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
@@ -14,7 +13,7 @@ import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8)
 import Data.Text.IO(readFile)
 import Data.Time(getCurrentTime, utctDay)
-import Data.Validation(_Failure, _Success, AccValidation)
+import Data.Validation(_Failure, _Success, AccValidation(AccSuccess, AccFailure))
 
 import qualified Data.Map                as Map
 import qualified Data.Text.Lazy          as LazyText
@@ -24,7 +23,7 @@ import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route
 import Snap.CORS(applyCORS, defaultOptions)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
-import Snap.Util.FileUploads(allowWithMaximumSize, defaultUploadPolicy, handleFileUploads, PartInfo(partFileName))
+import Snap.Util.FileUploads(allowWithMaximumSize, defaultUploadPolicy, handleFileUploads, PartInfo(partFileName), PolicyViolationException, policyViolationExceptionReason)
 import Snap.Util.GZip(withCompression)
 
 import System.Directory(createDirectoryIfMissing)
@@ -49,18 +48,11 @@ site = route [ ("new-session"                 ,                   allowingCORS P
              ] <|> dir "html" (serveDirectory "html")
 
 handleEchoData :: Snap ()
-handleEchoData =
-  do
-    liftIO $ createDirectoryIfMissing True dir
-    fileMappings <- handleFileUploads dir defaultUploadPolicy (const $ allowWithMaximumSize 20000000) handleRead
-    let dataMaybe = Map.lookup paramName (Map.fromList fileMappings)
-    maybe (notifyBadParams [paramName]) writeText dataMaybe
+handleEchoData = (handleUploadsTo "dist/filetmp") >>= (bimapM_ fail succeed)
   where
-    paramName = "data"
-    dir       = "dist/filetmp"
-    handleRead partInfo = either throwIO (readFile >>> liftIO >=> ((paramName, ) >>> return))
-      where
-        paramName = partInfo |> (partFileName >>> (fromMaybe "-") >>> decodeUtf8)
+    fail             = unlines >>> writeText >>> failWith 400
+    succeed          = lookupFold (\k -> notifyBadParams [k]) writeText "data"
+    lookupFold f g k = (Map.lookup k) >>> (maybe (f k) g)
 
 handleNewSession :: Snap ()
 handleNewSession = generateName |> (liftIO >=> writeText)
@@ -135,6 +127,7 @@ failWith x snap =
     modifyResponse $ setResponseStatus x $ statusName x
     snap
   where
+    statusName 400 = "Bad Request"
     statusName 404 = "Not Found"
     statusName 422 = "Unprocessable Entity"
     statusName _   = error "Unhandled status"
@@ -144,3 +137,25 @@ succeed contentType output =
   do
     modifyResponse $ setContentType contentType
     writeText output
+
+handleUploadsTo :: FilePath -> Snap (AccValidation [Text] (Map Text Text))
+handleUploadsTo directory =
+  do
+    liftIO $ createDirectoryIfMissing True directory
+    fileMappingVs <- handleFileUploads directory defaultUploadPolicy (const $ allowWithMaximumSize 20000000) handleRead
+    fileMappingVs |> (sequenceV >>> (map Map.fromList) >>> return)
+  where
+    sequenceV :: [AccValidation a b] -> AccValidation [a] [b]
+    sequenceV = foldr helper (_Success # [])
+      where
+        helper :: AccValidation a b -> AccValidation [a] [b] -> AccValidation [a] [b]
+        helper (AccSuccess s) (    (AccSuccess ss)) = _Success # (s:ss)
+        helper (AccFailure f) (    (AccFailure fs)) = _Failure # (f:fs)
+        helper (AccFailure f) (    (AccSuccess  _)) = _Failure #    [f]
+        helper (AccSuccess _) (res@(AccFailure  _)) = res
+    handleRead :: PartInfo -> (Either PolicyViolationException FilePath) -> IO (AccValidation Text (Text, Text))
+    handleRead partInfo = either lefty righty
+      where
+        key    = partInfo |> (partFileName >>> (fromMaybe "-") >>> decodeUtf8)
+        lefty  = policyViolationExceptionReason  >>> (_Failure #) >>> return
+        righty = readFile >>> liftIO >=> ((key,) >>> (_Success #) >>> return)
