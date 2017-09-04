@@ -12,7 +12,6 @@ import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8)
 import Data.Text.IO(readFile)
-import Data.Time(getCurrentTime, utctDay)
 import Data.Validation(_Failure, _Success, AccValidation(AccSuccess, AccFailure))
 
 import qualified Data.Map                as Map
@@ -71,10 +70,7 @@ handleUpload :: Snap ()
 handleUpload =
   handle3 (("session-id", [NonEmpty]), ("image", []), ("data", [])) $ \(sessionName, image, extraData) ->
     do
-      millis     <- liftIO getCurrentTime
-      let currentTime = utctDay millis
-      uploadName <- liftIO generateName
-      liftIO $ writeSubmission currentTime uploadName sessionName image extraData
+      uploadName <- liftIO $ writeSubmission sessionName image extraData
       writeText uploadName
 
 handle1 :: Arg -> (Text -> Snap ()) -> Snap ()

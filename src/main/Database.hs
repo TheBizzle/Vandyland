@@ -10,7 +10,9 @@ module Database(readSubmissionsForSession, retrieveSubmissionData, writeSubmissi
 
 import Bizzlelude
 
-import Data.Time(Day)
+import Control.Monad.IO.Class(liftIO)
+
+import Data.Time(getCurrentTime)
 
 import qualified Data.Text as Text
 
@@ -18,6 +20,7 @@ import Database.Persist((==.), Entity(entityVal), insert, selectFirst, selectLis
 import Database.Persist.Sqlite(runMigration, runSqlite)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 
+import NameGen(generateName)
 import Submission(Submission(Submission))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -26,7 +29,7 @@ SubmissionDB
     uploadName  Text
     base64Image Text
     extraData   Text
-    dateAdded   Day
+    dateAdded   UTCTime
     Primary sessionName uploadName
     deriving Show
 |]
@@ -45,12 +48,15 @@ retrieveSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
     sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
     return $ map (entityVal >>> extractData) sub
 
-writeSubmission :: Day -> Text -> Text -> Text -> Text -> IO ()
-writeSubmission timestamp uploadName sessionName imageBytes extraData = runSqlite "vandyland.sqlite3" $
+writeSubmission :: Text -> Text -> Text -> IO Text
+writeSubmission sessionName imageBytes extraData = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
+    uploadName <- liftIO generateName
+    timestamp  <- liftIO getCurrentTime
     let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes extraData timestamp
     _ <- insert subDB
+    return uploadName
     return ()
 
 dbToSubmission :: SubmissionDB -> Submission
