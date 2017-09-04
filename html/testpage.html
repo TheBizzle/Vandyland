@@ -1,6 +1,7 @@
 <html>
   <head>
     <link href="testpage.css" rel="stylesheet">
+    <link href="modal.css"    rel="stylesheet">
     <script src="testpage.js"></script>
  </head>
 
@@ -25,8 +26,44 @@
       </form>
       <div id="gallery" class="gallery"></div>
     </div>
+
+    <div id="item-details" class="modal hidden">
+      <div class="modal-content">
+        <div class="item-details-header">
+          <span class="close" onclick="hideModal()">&times;</span>
+          <h2 id="item-header"></h2>
+        </div>
+        <div id="item-details-body" class="item-details-body">
+          <div class="item-details-content">
+            <img id="item-details-image" class="item-details-image">
+            <input id="item-download-button" class="item-download-button" type="button" value="Download">
+            <div id="item-comment-area" class="item-comment-area">
+              <div id="item-top-level-comment-group">
+                <div contenteditable id="item-top-level-comment-box" class="comment-box"></div>
+                <div class="comment-controls">
+                  <input id="top-level-author"      type="text"   class="author-input" placeholder="Your name...">
+                  <input id="top-level-cancel-btn"  type="button" class="comment-control-button" value="Clear"   onclick=" clearCommentFrom('item-top-level-comment-group')">
+                  <input id="top-level-comment-btn" type="button" class="comment-control-button" value="Comment" onclick="submitCommentFrom('item-top-level-comment-group')">
+                </div>
+              </div>
+              <div id="item-comments" class="item-comments">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="item-details-footer"></div>
+      </div>
     </div>
 
+    <template id="comment-template">
+      <div class="comment">
+        <div class="comment-text"></div>
+        <div class="comment-by-line">
+          <div class="comment-author"></div>
+          <div class="comment-time"></div>
+        </div>
+      </div>
+    </template>
 
   </body>
 

@@ -6,20 +6,28 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(readSubmissionsForSession, retrieveSubmissionData, writeSubmission) where
+module Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission) where
 
 import Bizzlelude
 
 import Control.Monad.IO.Class(liftIO)
 
-import Data.Time(getCurrentTime)
+import Data.List(sortBy)
+import Data.Ord(comparing)
+import Data.Time(getCurrentTime, UTCTime)
+import Data.Time.Clock.POSIX(utcTimeToPOSIXSeconds)
+import Data.UUID(UUID)
 
 import qualified Data.Text as Text
+import qualified Data.UUID as UUID
 
 import Database.Persist((==.), Entity(entityVal), insert, selectFirst, selectList)
 import Database.Persist.Sqlite(runMigration, runSqlite)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 
+import System.Random(randomIO)
+
+import Comment(Comment(Comment, time))
 import NameGen(generateName)
 import Submission(Submission(Submission))
 
@@ -31,6 +39,16 @@ SubmissionDB
     extraData   Text
     dateAdded   UTCTime
     Primary sessionName uploadName
+    deriving Show
+CommentDB
+    uuid         Text
+    comment      Text
+    author       Text
+    parent       Text Maybe
+    sessionName  Text
+    uploadName   Text
+    time         UTCTime
+    Primary uuid
     deriving Show
 |]
 
@@ -57,10 +75,29 @@ writeSubmission sessionName imageBytes extraData = runSqlite "vandyland.sqlite3"
     let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes extraData timestamp
     _ <- insert subDB
     return uploadName
+
+readCommentsFor :: Text -> Text -> IO [Comment]
+readCommentsFor sessionName uploadName = runSqlite "vandyland.sqlite3" $
+  do
+    runMigration migrateAll
+    rows      <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] []
+    rows |> ((map $ entityVal >>> dbToComment) >>> (sortBy $ comparing time) >>> return)
+
+writeComment :: Text -> Text -> Text -> Text -> Maybe UUID -> IO ()
+writeComment comment uploadName sessionName author parent = runSqlite "vandyland.sqlite3" $
+  do
+    runMigration migrateAll
+    timestamp <- liftIO getCurrentTime
+    uuid      <- liftIO randomIO
+    let commentDB = CommentDB (UUID.toText uuid) comment author (map UUID.toText parent) (Text.toLower sessionName) (Text.toLower uploadName) timestamp
+    _ <- insert commentDB
     return ()
 
 dbToSubmission :: SubmissionDB -> Submission
 dbToSubmission (SubmissionDB _ uploadName image _ _) = Submission uploadName image
+
+dbToComment :: CommentDB -> Comment
+dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
 
 extractData :: SubmissionDB -> Text
 extractData (SubmissionDB _ _ _ extraData _) = extraData

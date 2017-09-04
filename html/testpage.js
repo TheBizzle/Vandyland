@@ -37,8 +37,10 @@ let sync = function() {
       img.classList.add("upload-image");
       img.src = entry.base64Image;
       img.onclick = function() {
-        let innerCallback = function(responseBody) { alert("Extra data for image is: " + responseBody); };
-        fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName).then((x) => x.text()).then(innerCallback);
+        let dataPromise     = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName              ).then(x => x.text());
+        let commentsPromise = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName + "/comments").then(x => x.json());
+        let commentURL      = domain + "/comments"
+        Promise.all([dataPromise, commentsPromise]).then(([data, comments]) => showModal(getSessionName(), entry.uploadName, data, comments, entry.base64Image, commentURL));
       };
 
       let label = document.createElement("span");

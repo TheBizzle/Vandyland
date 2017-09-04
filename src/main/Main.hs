@@ -17,6 +17,7 @@ import Data.Validation(_Failure, _Success, AccValidation(AccSuccess, AccFailure)
 import qualified Data.Map                as Map
 import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
+import qualified Data.UUID               as UUID
 
 import Snap.Core(dir, getParam, method, Method(GET, POST), modifyResponse, route, setContentType, setResponseStatus, Snap, writeText)
 import Snap.CORS(applyCORS, defaultOptions)
@@ -27,7 +28,7 @@ import Snap.Util.GZip(withCompression)
 
 import System.Directory(createDirectoryIfMissing)
 
-import Database(readSubmissionsForSession, retrieveSubmissionData, writeSubmission)
+import Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission)
 import NameGen(generateName)
 
 data Constraint
@@ -39,11 +40,13 @@ main :: IO ()
 main = quickHttpServe site
 
 site :: Snap ()
-site = route [ ("new-session"                 ,                   allowingCORS POST handleNewSession)
-             , ("uploads"                     ,                   allowingCORS POST handleUpload)
-             , ("echo"                        ,                   allowingCORS POST handleEchoData)
-             , ("uploads/:session-id"         , withCompression $ allowingCORS GET  handleListSession)
-             , ("uploads/:session-id/:item-id", withCompression $ allowingCORS GET  handleDownloadItem)
+site = route [ ("new-session"                          ,                   allowingCORS POST handleNewSession)
+             , ("uploads"                              ,                   allowingCORS POST handleUpload)
+             , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
+             , ("echo"                                 ,                   allowingCORS POST handleEchoData)
+             , ("uploads/:session-id"                  , withCompression $ allowingCORS GET  handleListSession)
+             , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
+             , ("uploads/:session-id/:item-id/comments", withCompression $ allowingCORS GET  handleGetComments)
              ] <|> dir "html" (serveDirectory "html")
 
 handleEchoData :: Snap ()
@@ -72,6 +75,17 @@ handleUpload =
     do
       uploadName <- liftIO $ writeSubmission sessionName image extraData
       writeText uploadName
+
+handleGetComments :: Snap ()
+handleGetComments = handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ (uncurry readCommentsFor) >>> liftIO >=> encodeText >>> (succeed "application/json")
+
+handleSubmitComment :: Snap ()
+handleSubmitComment =
+  handle5 (("session-id", [NonEmpty]), ("item-id", [NonEmpty]), ("comment", [NonEmpty]), ("author", [NonEmpty]), ("parent", [])) $
+    \(sessionName, uploadName, comment, author, parent) ->
+      do
+        liftIO $ writeComment comment uploadName sessionName author (UUID.fromText parent)
+        writeText "" -- Necessary?
 
 handle1 :: Arg -> (Text -> Snap ()) -> Snap ()
 handle1 arg onSuccess =
