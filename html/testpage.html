@@ -1,139 +1,35 @@
 <html>
   <head>
-
-    <script>
-
-      let domain = "http://localhost:8000";
-
-      let uploadInterval = undefined;
-      let lastUploadTime = 0;
-
-      let setSessionName = function(name) { document.getElementById('session-name').innerText = name; };
-      let getSessionName = function()     { return document.getElementById('session-name').innerText; };
-
-      window.onEnter = function(f) { return function(e) { if (e.keyCode === 13) { return f(e); } }; };
-
-      window.startSession = function(e) {
-
-        document.getElementById("landing-area").style.display = "none";
-        document.getElementById("main-content").style.display = "";
-
-        let startup = function(sessionName) {
-          setSessionName(sessionName);
-          uploadInterval = setInterval(sync, 10000);
-        };
-
-        if (e === undefined) {
-          fetch(domain + "/new-session", { method: "POST" }).then((x) => x.text()).then(startup);
-        } else {
-          startup(e.target.value);
-          sync()
-        }
-
-      };
-
-      let sync = function() {
-        let gallery = document.getElementById('gallery');
-        gallery.innerHTML = "";
-        let callback = function(entries) {
-          entries.forEach(function(entry) {
-
-            let img = document.createElement("img");
-            img.style = "max-width: 230px; max-height: 230px;"
-            img.src = entry.base64Image;
-            img.onclick = function() {
-              let innerCallback = function(responseBody) { alert("Extra data for image is: " + responseBody); };
-              fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName).then((x) => x.text()).then(innerCallback);
-            };
-
-            let label = document.createElement("span");
-            label.textContent = entry.uploadName;
-
-            let container = document.createElement("div")
-            container.appendChild(img);
-            container.appendChild(label);
-            container.style = "padding: 8px; height: 245px; width: 245px; display: flex; flex-direction: column; align-items: center;";
-
-            gallery.appendChild(container);
-
-          });
-        };
-        fetch(domain + "/uploads/" + getSessionName()).then((x) => x.json()).then(callback);
-      };
-
-      window.upload = function(e) {
-
-        e.preventDefault();
-
-        if ((new Date().getTime() - lastUploadTime) > 1000) {
-
-          let callback = function(responseBody) {
-            clearInterval(uploadInterval);
-            sync();
-            uploadInterval = setInterval(sync, 10000);
-          };
-
-          let failback = function() { alert(JSON.stringify(arguments)); };
-
-          new Promise(
-            function(resolve, reject) {
-              let reader = new FileReader();
-              reader.onloadend = function(event) {
-                resolve(event.target);
-              };
-              reader.readAsDataURL(document.getElementById('upload-image').files[0]);
-            }
-          ).then(function(imageEvent) {
-            if (imageEvent.result) {
-              let formData = new FormData(document.getElementById("upload-form"));
-              formData.set("image", imageEvent.result);
-              formData.append("session-id", getSessionName());
-              let params = Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
-              fetch(domain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(callback, failback);
-            } else {
-              reject("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error));
-            }
-          }).then(callback, failback);
-
-          lastUploadTime = new Date().getTime();
-
-        }
-
-        return false;
-
-      };
-
-    </script>
-  </head>
+    <link href="testpage.css" rel="stylesheet">
+    <script src="testpage.js"></script>
+ </head>
 
   <body>
     <div id="landing-area">
-        <input type="button" onclick="startSession()" value="Initiate a session" style="height: 28px;" />
-        <span style="font-weight: bold;">-OR-</span>
-        <label>join the session with this name: <input type="text" style="font-size: 24px;" onkeypress="onEnter(startSession)(event)" /></label>
+      <input type="button" onclick="startSession()" value="Initiate a session" class="big-button" />
+      <span class="bold">-OR-</span>
+      <label>join the session with this name: <input type="text" class="big-text" onkeypress="onEnter(startSession)(event)" /></label>
     </div>
-    <div id="main-content" style="display: none;">
-      <div style="font-size: 24px; font-weight: bold; margin-bottom: 25px;">Session Name: <span id="session-name" style="color: #00a9ff"></span></div>
+
+    <div id="main-content" class="hidden">
+      <div class="header" style="margin-bottom: 25px;">Session Name: <span id="session-name" class="session-name"></span></div>
       <form id="upload-form" style="margin-bottom: 25px;">
-        <fieldset style="width: 300px; border: 2px solid black; border-radius: 4px; padding: 5px;">
+        <fieldset class="upload-form-fields">
           <legend>Submit an item</legend>
           <label>Image: <input id="upload-image"      name="image" type="file" accept="image/*" required /></label><br>
-          <div style="height: 10px;"></div>
+          <div class="spacer-row"></div>
           <label>Data:  <input id="upload-extra-data" name="data"  type="text"                  required /></label><br>
-          <div style="height: 10px;"></div>
+          <div class="spacer-row"></div>
           <input type="submit" value="Upload" />
         </fieldset>
       </form>
-      <div id="gallery" style="min-height: 600px; width: 785px; display: flex; flex-direction: row; flex-wrap: wrap; border: 2px solid black; border-radius: 4px;"></div>
+      <div id="gallery" class="gallery"></div>
     </div>
+    </div>
+
+
   </body>
-  <script>
 
-    let uploadForm = document.getElementById("upload-form");
-
-    uploadForm.addEventListener('keyup',  onEnter(upload));
-    uploadForm.addEventListener('submit', upload);
-
-  </script>
+  <script src="startup.js"></script>
 
 </html>

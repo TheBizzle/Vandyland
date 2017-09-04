@@ -1,0 +1,59 @@
+.big-button {
+  height: 28px;
+}
+
+.big-text {
+  font-size: 24px;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.gallery {
+  display:        flex;
+  flex-direction: row;
+  flex-wrap:      wrap;
+  border:         2px solid black;
+  border-radius:  4px;
+  min-height:     600px;
+  width:          785px;
+}
+
+.header {
+  font-size:   24px;
+  font-weight: bold;
+}
+
+.hidden {
+  display: none;
+}
+
+.session-name {
+  color: #00a9ff;
+}
+
+.spacer-row {
+  height: 10px;
+}
+
+.upload-container {
+  display:        flex;
+  align-items:    center;
+  flex-direction: column;
+  padding:        8px;
+  height:         245px;
+  width:          245px;
+}
+
+.upload-form-fields {
+  border:        2px solid black;
+  border-radius: 4px;
+  padding:       5px;
+  width:         300px;
+}
+
+.upload-image {
+  max-height: 230px;
+  max-width:  230px;
+}
