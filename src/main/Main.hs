@@ -100,6 +100,17 @@ handle3 (arg1, arg2, arg3) onSuccess =
     let tupleV = (,,) <$> arg1 <*> arg2 <*> arg3
     bimapM_ notifyBadParams onSuccess tupleV
 
+handle5 :: (Arg, Arg, Arg, Arg, Arg) -> ((Text, Text, Text, Text, Text) -> Snap ()) -> Snap ()
+handle5 (arg1, arg2, arg3, arg4, arg5) onSuccess =
+  do
+    arg1 <- getParamV arg1
+    arg2 <- getParamV arg2
+    arg3 <- getParamV arg3
+    arg4 <- getParamV arg4
+    arg5 <- getParamV arg5
+    let tupleV = (,,,,) <$> arg1 <*> arg2 <*> arg3 <*> arg4 <*> arg5
+    bimapM_ notifyBadParams onSuccess tupleV
+
 encodeText :: ToJSON a => a -> Text
 encodeText = encode >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict
 
