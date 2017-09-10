@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, handleUploadsTo, notifyBadParams, succeed) where
+module SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry3, uncurry4, uncurry5) where
 
 import Bizzlelude
 
@@ -131,3 +131,12 @@ handleUploadsTo directory =
         key    = partInfo |> (partFileName >>> (fromMaybe "-") >>> decodeUtf8)
         lefty  = policyViolationExceptionReason  >>> (_Failure #) >>> return
         righty = readFile >>> liftIO >=> ((key,) >>> (_Success #) >>> return)
+
+uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
+uncurry3 f (a, b, c) = f a b c
+
+uncurry4 :: (a -> b -> c -> d -> e) -> ((a, b, c, d) -> e)
+uncurry4 f (a, b, c, d) = f a b c d
+
+uncurry5 :: (a -> b -> c -> d -> e -> f) -> ((a, b, c, d, e) -> f)
+uncurry5 f (a, b, c, d, e) = f a b c d e
