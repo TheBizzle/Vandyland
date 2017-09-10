@@ -9,7 +9,7 @@
     <div id="landing-area">
       <input type="button" onclick="startSession()" value="Initiate a session" class="big-button" />
       <span class="bold">-OR-</span>
-      <label>join the session with this name: <input type="text" class="big-text" onkeypress="onEnter(startSession)(event)" /></label>
+      <label>join the session with this name: <input type="text" class="big-text" onkeypress="onEnter(e => startSession(e.target.value))(event)" /></label>
     </div>
 
     <div id="main-content" class="hidden">

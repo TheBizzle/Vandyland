@@ -3,12 +3,17 @@ let domain = "http://localhost:8000";
 let uploadInterval = undefined;
 let lastUploadTime = 0;
 
-let setSessionName = function(name) { document.getElementById('session-name').innerText = name; };
-let getSessionName = function()     { return document.getElementById('session-name').innerText; };
+let setSessionName = function(name) {
+  document.getElementById('session-name').innerText = name;
+};
+
+let getSessionName = function() {
+  return document.getElementById('session-name').innerText;
+};
 
 window.onEnter = function(f) { return function(e) { if (e.keyCode === 13) { return f(e); } }; };
 
-window.startSession = function(e) {
+window.startSession = function(sessionName) {
 
   document.getElementById("landing-area").classList.add   ("hidden");
   document.getElementById("main-content").classList.remove("hidden");
@@ -18,10 +23,10 @@ window.startSession = function(e) {
     uploadInterval = setInterval(sync, 10000);
   };
 
-  if (e === undefined) {
+  if (sessionName === undefined) {
     fetch(domain + "/new-session", { method: "POST" }).then((x) => x.text()).then(startup);
   } else {
-    startup(e.target.value);
+    startup(sessionName);
     sync()
   }
 
