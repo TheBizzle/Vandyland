@@ -21,7 +21,7 @@ import Data.UUID(UUID)
 import qualified Data.Text as Text
 import qualified Data.UUID as UUID
 
-import Database.Persist((==.), Entity(entityVal), insert, selectFirst, selectList)
+import Database.Persist((==.), Entity(entityVal), insert, selectFirst, selectList, SelectOpt(Asc))
 import Database.Persist.Sqlite(runMigration, runSqlite)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 
@@ -57,7 +57,7 @@ readSubmissionsForSession :: Text -> IO [Submission]
 readSubmissionsForSession sessionName = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
-    rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] []
+    rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
     return $ map (entityVal >>> dbToSubmission) rows
 
 retrieveSubmissionMetadata :: Text -> Text -> IO (Maybe (Maybe Text))
@@ -80,7 +80,7 @@ readCommentsFor :: Text -> Text -> IO [Comment]
 readCommentsFor sessionName uploadName = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
-    rows      <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] []
+    rows      <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] [Asc CommentDBTime]
     rows |> ((map $ entityVal >>> dbToComment) >>> (sortBy $ comparing time) >>> return)
 
 writeComment :: Text -> Text -> Text -> Text -> Maybe UUID -> IO ()
