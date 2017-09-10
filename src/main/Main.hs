@@ -17,7 +17,7 @@ import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Snap.Util.GZip(withCompression)
 
-import Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, retrieveSubmissionMetadata, writeComment, writeSubmission)
+import Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission)
 import NameGen(generateName)
 import SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry4)
 
@@ -31,7 +31,6 @@ site = route [ ("new-session"                          ,                   allow
              , ("echo"                                 ,                   allowingCORS POST handleEchoData)
              , ("uploads/:session-id"                  , withCompression $ allowingCORS GET  handleListSession)
              , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
-             , ("uploads/:session-id/:item-id/metadata", withCompression $ allowingCORS GET  handleDownloadMetadata)
              , ("uploads/:session-id/:item-id/comments", withCompression $ allowingCORS GET  handleGetComments)
              ] <|> dir "html" (serveDirectory "html")
 
@@ -47,16 +46,6 @@ handleNewSession = generateName |> (liftIO >=> writeText)
 
 handleListSession :: Snap ()
 handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionsForSession >>> liftIO >=> encodeText >>> (succeed "application/json")
-
-handleDownloadMetadata :: Snap ()
-handleDownloadMetadata =
-  handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ \ps ->
-    do
-      dataMaybeMaybe <- liftIO $ (uncurry retrieveSubmissionMetadata) ps
-      case dataMaybeMaybe of
-        Nothing       -> failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))
-        Just Nothing  -> failWith 404 (writeText $ "This entry does not have any associated metadata")
-        Just (Just x) -> succeed "text/plain" x
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =

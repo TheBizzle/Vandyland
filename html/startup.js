@@ -30,7 +30,7 @@ let addCommentTo = function(commentsElem) { return function(comment) {
 
 window.showModal = function(sessionName, uploadName, metadata, data, comments, imgSrc, commentURL) {
 
-  document.getElementById("item-header"         ).innerText = metadata === undefined ? uploadName : uploadName + " by " + metadata;
+  document.getElementById("item-header"         ).innerText = metadata === null ? uploadName : uploadName + " by " + metadata;
   document.getElementById("item-details-image"  ).src       = imgSrc;
   document.getElementById("item-download-button").onclick   = function() { alert("Data: " + JSON.stringify(data)); };
 

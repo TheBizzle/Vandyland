@@ -6,7 +6,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, retrieveSubmissionMetadata, writeComment, writeSubmission) where
+module Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission) where
 
 import Bizzlelude
 
@@ -60,11 +60,12 @@ readSubmissionsForSession sessionName = runSqlite "vandyland.sqlite3" $
     rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
     return $ map (entityVal >>> dbToSubmission) rows
 
-retrieveSubmissionMetadata :: Text -> Text -> IO (Maybe (Maybe Text))
-retrieveSubmissionMetadata = extractFromSubmission extractMetadata
-
 retrieveSubmissionData :: Text -> Text -> IO (Maybe Text)
-retrieveSubmissionData = extractFromSubmission extractData
+retrieveSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
+  do
+    runMigration migrateAll
+    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
+    return $ map (entityVal >>> extractData) sub
 
 writeSubmission :: Text -> Text -> (Maybe Text) -> Text -> IO Text
 writeSubmission sessionName imageBytes metadata extraData = runSqlite "vandyland.sqlite3" $
@@ -93,21 +94,11 @@ writeComment comment uploadName sessionName author parent = runSqlite "vandyland
     _ <- insert commentDB
     return ()
 
-extractFromSubmission :: (SubmissionDB -> a) -> Text -> Text -> IO (Maybe a)
-extractFromSubmission extract sessionName uploadName = runSqlite "vandyland.sqlite3" $
-  do
-    runMigration migrateAll
-    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
-    return $ map (entityVal >>> extract) sub
-
 dbToSubmission :: SubmissionDB -> Submission
-dbToSubmission (SubmissionDB _ uploadName image _ _ _) = Submission uploadName image
+dbToSubmission (SubmissionDB _ uploadName image metadata _ _) = Submission uploadName image metadata
 
 dbToComment :: CommentDB -> Comment
 dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
-
-extractMetadata :: SubmissionDB -> Maybe Text
-extractMetadata (SubmissionDB _ _ _ metadata _ _) = metadata
 
 extractData :: SubmissionDB -> Text
 extractData (SubmissionDB _ _ _ _ extraData _) = extraData

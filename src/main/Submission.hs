@@ -11,6 +11,7 @@ data Submission
   = Submission {
       uploadName  :: Text
     , base64Image :: Text
+    , metadata    :: Maybe Text
     } deriving (Generic, Show)
 
 instance ToJSON Submission

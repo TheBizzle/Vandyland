@@ -36,42 +36,36 @@ window.startSession = function(sessionName) {
 let sync = function() {
 
   let gallery = document.getElementById('gallery');
-  gallery.innerHTML = "";
 
   let callback = function(entries) {
 
     let containerPromises =
       entries.map(function(entry) {
 
-        let metadataPromise = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName + "/metadata").then(x => x.ok ? x.text() : undefined);
-        return metadataPromise.then(function(metadata) {
+        let img = document.createElement("img");
+        img.classList.add("upload-image");
+        img.src = entry.base64Image;
+        img.onclick = function() {
+          let dataPromise     = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName              ).then(x => x.text());
+          let commentsPromise = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName + "/comments").then(x => x.json());
+          let commentURL      = domain + "/comments"
+          Promise.all([dataPromise, commentsPromise]).then(([data, comments]) => showModal(getSessionName(), entry.uploadName, entry.metadata, data, comments, entry.base64Image, commentURL));
+        };
 
-          let img = document.createElement("img");
-          img.classList.add("upload-image");
-          img.src = entry.base64Image;
-          img.onclick = function() {
-            let dataPromise     = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName              ).then(x => x.text());
-            let commentsPromise = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName + "/comments").then(x => x.json());
-            let commentURL      = domain + "/comments"
-            Promise.all([dataPromise, commentsPromise]).then(([data, comments]) => showModal(getSessionName(), entry.uploadName, metadata, data, comments, entry.base64Image, commentURL));
-          };
+        let label   = document.createElement("span");
+        let boldStr = function(str) { return '<span style="font-weight: bold;">' + str + '</span>' };
+        label.innerHTML = entry.metadata === null ? boldStr(entry.uploadName) : boldStr(entry.uploadName) + " by " + boldStr(entry.metadata);
 
-          let label   = document.createElement("span");
-          let boldStr = function(str) { return '<span style="font-weight: bold;">' + str + '</span>' };
-          label.innerHTML = metadata === undefined ? boldStr(entry.uploadName) : boldStr(entry.uploadName) + " by " + boldStr(metadata);
+        let container = document.createElement("div")
+        container.appendChild(img);
+        container.appendChild(label);
+        container.classList.add("upload-container");
 
-          let container = document.createElement("div")
-          container.appendChild(img);
-          container.appendChild(label);
-          container.classList.add("upload-container");
-
-          return container;
-
-        });
+        return container;
 
       });
 
-    Promise.all(containerPromises).then((containers) => containers.forEach((container) => gallery.appendChild(container)));
+    Promise.all(containerPromises).then((containers) => { gallery.innerHTML = ""; containers.forEach((container) => gallery.appendChild(container)); });
 
   };
 
