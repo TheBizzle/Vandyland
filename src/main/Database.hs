@@ -6,7 +6,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission) where
+module Database(readCommentsFor, readSubmissionsForSession, readSubmissionData, writeComment, writeSubmission) where
 
 import Bizzlelude
 
@@ -60,8 +60,8 @@ readSubmissionsForSession sessionName = runSqlite "vandyland.sqlite3" $
     rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
     return $ map (entityVal >>> dbToSubmission) rows
 
-retrieveSubmissionData :: Text -> Text -> IO (Maybe Text)
-retrieveSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
+readSubmissionData :: Text -> Text -> IO (Maybe Text)
+readSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
     sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
@@ -81,7 +81,7 @@ readCommentsFor :: Text -> Text -> IO [Comment]
 readCommentsFor sessionName uploadName = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
-    rows      <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] [Asc CommentDBTime]
+    rows <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] [Asc CommentDBTime]
     rows |> ((map $ entityVal >>> dbToComment) >>> (sortBy $ comparing time) >>> return)
 
 writeComment :: Text -> Text -> Text -> Text -> Maybe UUID -> IO ()

@@ -17,7 +17,7 @@ import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Snap.Util.GZip(withCompression)
 
-import Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission)
+import Database(readCommentsFor, readSubmissionsForSession, readSubmissionData, writeComment, writeSubmission)
 import NameGen(generateName)
 import SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry4)
 
@@ -51,7 +51,7 @@ handleDownloadItem :: Snap ()
 handleDownloadItem =
   handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ \ps ->
     do
-      dataMaybe <- liftIO $ (uncurry retrieveSubmissionData) ps
+      dataMaybe <- liftIO $ (uncurry readSubmissionData) ps
       maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) (succeed "text/plain") dataMaybe
 
 handleUpload :: Snap ()
