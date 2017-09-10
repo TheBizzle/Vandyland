@@ -1,15 +1,15 @@
 {-# LANGUAGE TupleSections #-}
-module SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry3, uncurry4, uncurry5) where
+module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry3, uncurry4, uncurry5) where
 
 import Bizzlelude
 
 import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
-import Data.Aeson(encode, ToJSON)
+import Data.Aeson(decode, encode, FromJSON, ToJSON)
 import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
-import Data.Text.Encoding(decodeUtf8)
+import Data.Text.Encoding(decodeUtf8, encodeUtf8)
 import Data.Text.IO(readFile)
 import Data.Validation(_Failure, _Success, AccValidation(AccSuccess, AccFailure))
 
@@ -19,6 +19,7 @@ import Snap.Util.FileUploads(allowWithMaximumSize, defaultUploadPolicy, handleFi
 
 import System.Directory(createDirectoryIfMissing)
 
+import qualified Data.ByteString.Lazy    as LazyByteString
 import qualified Data.Map                as Map
 import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
@@ -71,6 +72,9 @@ handle5 (arg1, arg2, arg3, arg4, arg5) onSuccess =
     arg5 <- getParamV arg5
     let tupleV = (,,,,) <$> arg1 <*> arg2 <*> arg3 <*> arg4 <*> arg5
     bimapM_ notifyBadParams onSuccess tupleV
+
+decodeText :: FromJSON a => Text -> Maybe a
+decodeText = encodeUtf8 >>> LazyByteString.fromStrict >>> decode
 
 encodeText :: ToJSON a => a -> Text
 encodeText = encode >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict
