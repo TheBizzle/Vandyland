@@ -91,7 +91,7 @@ allowingCORS :: Method -> Snap () -> Snap ()
 allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
 
 notifyBadParams :: [Text] -> Snap ()
-notifyBadParams = (fmap ("Missing parameter: " <>)) >>> unlines >>> writeText >>> (failWith 422)
+notifyBadParams = (map ("Missing parameter: " <>)) >>> unlines >>> writeText >>> (failWith 422)
 
 failWith :: Int -> Snap () -> Snap ()
 failWith x snap =
