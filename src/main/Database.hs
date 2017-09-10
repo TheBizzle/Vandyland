@@ -6,7 +6,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission) where
+module Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, retrieveSubmissionMetadata, writeComment, writeSubmission) where
 
 import Bizzlelude
 
@@ -36,6 +36,7 @@ SubmissionDB
     sessionName Text
     uploadName  Text
     base64Image Text
+    metadata    Text Maybe
     extraData   Text
     dateAdded   UTCTime
     Primary sessionName uploadName
@@ -59,20 +60,19 @@ readSubmissionsForSession sessionName = runSqlite "vandyland.sqlite3" $
     rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] []
     return $ map (entityVal >>> dbToSubmission) rows
 
-retrieveSubmissionData :: Text -> Text -> IO (Maybe Text)
-retrieveSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
-  do
-    runMigration migrateAll
-    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
-    return $ map (entityVal >>> extractData) sub
+retrieveSubmissionMetadata :: Text -> Text -> IO (Maybe (Maybe Text))
+retrieveSubmissionMetadata = extractFromSubmission extractMetadata
 
-writeSubmission :: Text -> Text -> Text -> IO Text
-writeSubmission sessionName imageBytes extraData = runSqlite "vandyland.sqlite3" $
+retrieveSubmissionData :: Text -> Text -> IO (Maybe Text)
+retrieveSubmissionData = extractFromSubmission extractData
+
+writeSubmission :: Text -> Text -> (Maybe Text) -> Text -> IO Text
+writeSubmission sessionName imageBytes metadata extraData = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
     uploadName <- liftIO generateName
     timestamp  <- liftIO getCurrentTime
-    let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes extraData timestamp
+    let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes metadata extraData timestamp
     _ <- insert subDB
     return uploadName
 
@@ -93,11 +93,21 @@ writeComment comment uploadName sessionName author parent = runSqlite "vandyland
     _ <- insert commentDB
     return ()
 
+extractFromSubmission :: (SubmissionDB -> a) -> Text -> Text -> IO (Maybe a)
+extractFromSubmission extract sessionName uploadName = runSqlite "vandyland.sqlite3" $
+  do
+    runMigration migrateAll
+    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
+    return $ map (entityVal >>> extract) sub
+
 dbToSubmission :: SubmissionDB -> Submission
-dbToSubmission (SubmissionDB _ uploadName image _ _) = Submission uploadName image
+dbToSubmission (SubmissionDB _ uploadName image _ _ _) = Submission uploadName image
 
 dbToComment :: CommentDB -> Comment
 dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
 
+extractMetadata :: SubmissionDB -> Maybe Text
+extractMetadata (SubmissionDB _ _ _ metadata _ _) = metadata
+
 extractData :: SubmissionDB -> Text
-extractData (SubmissionDB _ _ _ extraData _) = extraData
+extractData (SubmissionDB _ _ _ _ extraData _) = extraData

@@ -7,20 +7,19 @@ import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Bifoldable(bimapM_)
-import Data.Text.Encoding(decodeUtf8)
 import Data.Validation(_Success)
 
 import qualified Data.Map  as Map
 import qualified Data.UUID as UUID
 
-import Snap.Core(dir, getParam, Method(GET, POST), route, Snap, writeText)
+import Snap.Core(dir, Method(GET, POST), route, Snap, writeText)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Snap.Util.GZip(withCompression)
 
-import Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, writeComment, writeSubmission)
+import Database(readCommentsFor, readSubmissionsForSession, retrieveSubmissionData, retrieveSubmissionMetadata, writeComment, writeSubmission)
 import NameGen(generateName)
-import SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle5, handleUploadsTo, notifyBadParams, succeed)
+import SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry4)
 
 main :: IO ()
 main = quickHttpServe site
@@ -32,6 +31,7 @@ site = route [ ("new-session"                          ,                   allow
              , ("echo"                                 ,                   allowingCORS POST handleEchoData)
              , ("uploads/:session-id"                  , withCompression $ allowingCORS GET  handleListSession)
              , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
+             , ("uploads/:session-id/:item-id/metadata", withCompression $ allowingCORS GET  handleDownloadMetadata)
              , ("uploads/:session-id/:item-id/comments", withCompression $ allowingCORS GET  handleGetComments)
              ] <|> dir "html" (serveDirectory "html")
 
@@ -48,6 +48,16 @@ handleNewSession = generateName |> (liftIO >=> writeText)
 handleListSession :: Snap ()
 handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionsForSession >>> liftIO >=> encodeText >>> (succeed "application/json")
 
+handleDownloadMetadata :: Snap ()
+handleDownloadMetadata =
+  handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ \ps ->
+    do
+      dataMaybeMaybe <- liftIO $ (uncurry retrieveSubmissionMetadata) ps
+      case dataMaybeMaybe of
+        Nothing       -> failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))
+        Just Nothing  -> failWith 404 (writeText $ "This entry does not have any associated metadata")
+        Just (Just x) -> succeed "text/plain" x
+
 handleDownloadItem :: Snap ()
 handleDownloadItem =
   handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ \ps ->
@@ -57,10 +67,13 @@ handleDownloadItem =
 
 handleUpload :: Snap ()
 handleUpload =
-  handle3 (("session-id", [NonEmpty]), ("image", []), ("data", [])) $ \(sessionName, image, extraData) ->
-    do
-      uploadName <- liftIO $ writeSubmission sessionName image extraData
-      writeText uploadName
+  do
+    sessionID <- getParamV ("session-id", [NonEmpty])
+    image     <- getParamV ("image"     , [])
+    metadata  <- getParamV ("metadata"  , [NonEmpty])
+    mainData  <- getParamV ("data"      , [])
+    let tupleV = (,,,) <$> sessionID <*> image <*> (map Just metadata <> (_Success # Nothing)) <*> mainData
+    bimapM_ notifyBadParams ((uncurry4 writeSubmission) >>> liftIO >=> writeText) tupleV
 
 handleGetComments :: Snap ()
 handleGetComments = handle2 (("session-id", [NonEmpty]), ("item-id", [NonEmpty])) $ (uncurry readCommentsFor) >>> liftIO >=> encodeText >>> (succeed "application/json")
