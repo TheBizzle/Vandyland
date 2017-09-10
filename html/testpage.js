@@ -4,6 +4,7 @@ let uploadInterval = undefined;
 let lastUploadTime = 0;
 
 let setSessionName = function(name) {
+  window.location.hash = name;
   document.getElementById('session-name').innerText = name;
 };
 
