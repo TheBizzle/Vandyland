@@ -12,7 +12,7 @@ Executable vandyland
   main-is: Main.hs
   default-language: Haskell2010
   default-extensions: NoImplicitPrelude, OverloadedStrings
-  other-modules: Comment, Database, NameGen, Submission
+  other-modules: Comment, Database, NameGen, SnapHelpers, Submission
   GHC-Options:
     -Wall
     -fno-warn-name-shadowing
