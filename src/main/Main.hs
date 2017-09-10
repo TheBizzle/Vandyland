@@ -25,13 +25,13 @@ main :: IO ()
 main = quickHttpServe site
 
 site :: Snap ()
-site = route [ ("new-session"                          ,                   allowingCORS POST handleNewSession)
+site = route [ ("echo"                                 ,                   allowingCORS POST handleEchoData)
+             , ("new-session"                          ,                   allowingCORS POST handleNewSession)
              , ("uploads"                              ,                   allowingCORS POST handleUpload)
-             , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
-             , ("echo"                                 ,                   allowingCORS POST handleEchoData)
-             , ("uploads/:session-id"                  , withCompression $ allowingCORS GET  handleListSession)
              , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
-             , ("uploads/:session-id/:item-id/comments", withCompression $ allowingCORS GET  handleGetComments)
+             , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
+             , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
+             , ("uploads/:session-id"                  , withCompression $ allowingCORS GET  handleListSession)
              ] <|> dir "html" (serveDirectory "html")
 
 handleEchoData :: Snap ()

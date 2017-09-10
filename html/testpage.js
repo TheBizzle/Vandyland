@@ -46,8 +46,8 @@ let sync = function() {
         img.classList.add("upload-image");
         img.src = entry.base64Image;
         img.onclick = function() {
-          let dataPromise     = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName              ).then(x => x.text());
-          let commentsPromise = fetch(domain + "/uploads/" + getSessionName() + "/" + entry.uploadName + "/comments").then(x => x.json());
+          let dataPromise     = fetch(domain + "/uploads/"  + getSessionName() + "/" + entry.uploadName).then(x => x.text());
+          let commentsPromise = fetch(domain + "/comments/" + getSessionName() + "/" + entry.uploadName).then(x => x.json());
           let commentURL      = domain + "/comments"
           Promise.all([dataPromise, commentsPromise]).then(([data, comments]) => showModal(getSessionName(), entry.uploadName, entry.metadata, data, comments, entry.base64Image, commentURL));
         };
