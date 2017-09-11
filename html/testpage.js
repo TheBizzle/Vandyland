@@ -2,6 +2,7 @@ let domain = "http://localhost:8000";
 
 let uploadInterval = undefined;
 let lastUploadTime = 0;
+let syncRate       = 1000;
 let knownNames     = new Set();
 
 let setSessionName = function(name) {
@@ -22,7 +23,7 @@ window.startSession = function(sessionName) {
 
   let startup = function(sessionName) {
     setSessionName(sessionName);
-    uploadInterval = setInterval(sync, 10000);
+    uploadInterval = setInterval(sync, syncRate);
   };
 
   if (sessionName === undefined) {
@@ -94,7 +95,7 @@ window.upload = function(e) {
     let callback = function(responseBody) {
       clearInterval(uploadInterval);
       sync();
-      uploadInterval = setInterval(sync, 10000);
+      uploadInterval = setInterval(sync, syncRate);
     };
 
     let failback = function() { alert(JSON.stringify(arguments)); };
