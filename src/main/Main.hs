@@ -17,9 +17,9 @@ import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Snap.Util.GZip(withCompression)
 
-import Database(readCommentsFor, readSubmissionsForSession, readSubmissionData, writeComment, writeSubmission)
+import Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, writeComment, writeSubmission)
 import NameGen(generateName)
-import SnapHelpers(allowingCORS, Constraint(NonEmpty), encodeText, failWith, getParamV, handle1, handle2, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry4)
+import SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, handleUploadsTo, notifyBadParams, succeed, uncurry4)
 
 main :: IO ()
 main = quickHttpServe site
@@ -31,7 +31,8 @@ site = route [ ("echo"                                 ,                   allow
              , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
              , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
              , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
-             , ("uploads/:session-id"                  , withCompression $ allowingCORS GET  handleListSession)
+             , ("names/:session-id"                    , withCompression $ allowingCORS GET  handleListSession)
+             , ("data-lite"                            , withCompression $ allowingCORS POST handleSubmissionsLite)
              ] <|> dir "html" (serveDirectory "html")
 
 handleEchoData :: Snap ()
@@ -45,7 +46,7 @@ handleNewSession :: Snap ()
 handleNewSession = generateName |> (liftIO >=> writeText)
 
 handleListSession :: Snap ()
-handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionsForSession >>> liftIO >=> encodeText >>> (succeed "application/json")
+handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionNames >>> liftIO >=> encodeText >>> (succeed "application/json")
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
@@ -53,6 +54,13 @@ handleDownloadItem =
     do
       dataMaybe <- liftIO $ (uncurry readSubmissionData) ps
       maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) (succeed "text/plain") dataMaybe
+
+handleSubmissionsLite :: Snap ()
+handleSubmissionsLite =
+  handle2 (("session-id", [NonEmpty]), ("names", [])) $ \(sessionID, namesText) ->
+    do
+      let names = decodeText namesText :: Maybe [Text]
+      maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText)) ((readSubmissionsLite sessionID) >>> liftIO >=> encodeText >>> (succeed "application/json")) names
 
 handleUpload :: Snap ()
 handleUpload =

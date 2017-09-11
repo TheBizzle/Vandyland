@@ -6,7 +6,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(readCommentsFor, readSubmissionsForSession, readSubmissionData, writeComment, writeSubmission) where
+module Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, writeComment, writeSubmission) where
 
 import Bizzlelude
 
@@ -21,7 +21,7 @@ import Data.UUID(UUID)
 import qualified Data.Text as Text
 import qualified Data.UUID as UUID
 
-import Database.Persist((==.), Entity(entityVal), insert, selectFirst, selectList, SelectOpt(Asc))
+import Database.Persist((<-.), (==.), Entity(entityVal), insert, selectFirst, selectList, SelectOpt(Asc))
 import Database.Persist.Sqlite(runMigration, runSqlite)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 
@@ -53,12 +53,12 @@ CommentDB
     deriving Show
 |]
 
-readSubmissionsForSession :: Text -> IO [Submission]
-readSubmissionsForSession sessionName = runSqlite "vandyland.sqlite3" $
+readSubmissionNames :: Text -> IO [Text]
+readSubmissionNames sessionName = runSqlite "vandyland.sqlite3" $
   do
     runMigration migrateAll
     rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
-    return $ map (entityVal >>> dbToSubmission) rows
+    return $ map (entityVal >>> extractUploadName) rows
 
 readSubmissionData :: Text -> Text -> IO (Maybe Text)
 readSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
@@ -66,6 +66,13 @@ readSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
     runMigration migrateAll
     sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
     return $ map (entityVal >>> extractData) sub
+
+readSubmissionsLite :: Text -> [Text] -> IO [Submission]
+readSubmissionsLite sessionName names = runSqlite "vandyland.sqlite3" $
+  do
+    runMigration migrateAll
+    subs <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
+    return $ map (entityVal >>> dbToSubmission) subs
 
 writeSubmission :: Text -> Text -> (Maybe Text) -> Text -> IO Text
 writeSubmission sessionName imageBytes metadata extraData = runSqlite "vandyland.sqlite3" $
@@ -99,6 +106,9 @@ dbToSubmission (SubmissionDB _ uploadName image metadata _ _) = Submission uploa
 
 dbToComment :: CommentDB -> Comment
 dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
+
+extractUploadName :: SubmissionDB -> Text
+extractUploadName (SubmissionDB _ uploadName _ _ _ _) = uploadName
 
 extractData :: SubmissionDB -> Text
 extractData (SubmissionDB _ _ _ _ extraData _) = extraData

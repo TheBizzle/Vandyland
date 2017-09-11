@@ -2,6 +2,7 @@ let domain = "http://localhost:8000";
 
 let uploadInterval = undefined;
 let lastUploadTime = 0;
+let knownNames     = new Set();
 
 let setSessionName = function(name) {
   window.location.hash = name;
@@ -61,15 +62,26 @@ let sync = function() {
         container.appendChild(label);
         container.classList.add("upload-container");
 
+        knownNames.add(entry.uploadName);
+
         return container;
 
       });
 
-    Promise.all(containerPromises).then((containers) => { gallery.innerHTML = ""; containers.forEach((container) => gallery.appendChild(container)); });
+    Promise.all(containerPromises).then((containers) => containers.forEach((container) => gallery.appendChild(container)));
 
   };
 
-  fetch(domain + "/uploads/" + getSessionName()).then((x) => x.json()).then(callback);
+  fetch(domain + "/names/" + getSessionName()).then(x => x.json()).then(
+    function(names) {
+      let newNames = names.filter((name) => !knownNames.has(name));
+      let formData = new FormData();
+      formData.append("session-id", getSessionName());
+      formData.append("names"     , JSON.stringify(newNames));
+      let params = Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+      return fetch(domain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+    }
+  ).then(x => x.json()).then(callback);
 
 };
 
