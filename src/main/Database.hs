@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -11,6 +12,9 @@ module Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSu
 import Bizzlelude
 
 import Control.Monad.IO.Class(liftIO)
+import Control.Monad.Logger(NoLoggingT, runStderrLoggingT)
+import Control.Monad.Trans.Reader(ReaderT)
+import Control.Monad.Trans.Resource(ResourceT)
 
 import Data.List(sortBy)
 import Data.Ord(comparing)
@@ -22,12 +26,13 @@ import qualified Data.Text as Text
 import qualified Data.UUID as UUID
 
 import Database.Persist((<-.), (==.), Entity(entityVal), insert, selectFirst, selectList, SelectOpt(Asc))
-import Database.Persist.Sqlite(runMigration, runSqlite)
+import Database.Persist.Postgresql(runMigration, runSqlPersistMPool, SqlBackend, withPostgresqlPool)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 
 import System.Random(randomIO)
 
 import Comment(Comment(Comment, time))
+import DBCredentials(password, username)
 import NameGen(generateName)
 import Submission(Submission(Submission))
 
@@ -54,52 +59,56 @@ CommentDB
 |]
 
 readSubmissionNames :: Text -> IO [Text]
-readSubmissionNames sessionName = runSqlite "vandyland.sqlite3" $
-  do
-    runMigration migrateAll
-    rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
-    return $ map (entityVal >>> extractUploadName) rows
+readSubmissionNames sessionName = withDB $
+    do
+      rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
+      return $ map (entityVal >>> extractUploadName) rows
 
 readSubmissionData :: Text -> Text -> IO (Maybe Text)
-readSubmissionData sessionName uploadName = runSqlite "vandyland.sqlite3" $
-  do
-    runMigration migrateAll
-    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
-    return $ map (entityVal >>> extractData) sub
+readSubmissionData sessionName uploadName = withDB $
+    do
+      sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
+      return $ map (entityVal >>> extractData) sub
 
 readSubmissionsLite :: Text -> [Text] -> IO [Submission]
-readSubmissionsLite sessionName names = runSqlite "vandyland.sqlite3" $
-  do
-    runMigration migrateAll
-    subs <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
-    return $ map (entityVal >>> dbToSubmission) subs
+readSubmissionsLite sessionName names = withDB $
+    do
+      subs <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
+      return $ map (entityVal >>> dbToSubmission) subs
 
 writeSubmission :: Text -> Text -> (Maybe Text) -> Text -> IO Text
-writeSubmission sessionName imageBytes metadata extraData = runSqlite "vandyland.sqlite3" $
-  do
-    runMigration migrateAll
-    uploadName <- liftIO generateName
-    timestamp  <- liftIO getCurrentTime
-    let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes metadata extraData timestamp
-    _ <- insert subDB
-    return uploadName
+writeSubmission sessionName imageBytes metadata extraData = withDB $
+    do
+      uploadName <- liftIO generateName
+      timestamp  <- liftIO getCurrentTime
+      let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes metadata extraData timestamp
+      _ <- insert subDB
+      return uploadName
 
 readCommentsFor :: Text -> Text -> IO [Comment]
-readCommentsFor sessionName uploadName = runSqlite "vandyland.sqlite3" $
-  do
-    runMigration migrateAll
-    rows <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] [Asc CommentDBTime]
-    rows |> ((map $ entityVal >>> dbToComment) >>> (sortBy $ comparing time) >>> return)
+readCommentsFor sessionName uploadName = withDB $
+    do
+      rows <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] [Asc CommentDBTime]
+      rows |> ((map $ entityVal >>> dbToComment) >>> (sortBy $ comparing time) >>> return)
 
 writeComment :: Text -> Text -> Text -> Text -> Maybe UUID -> IO ()
-writeComment comment uploadName sessionName author parent = runSqlite "vandyland.sqlite3" $
+writeComment comment uploadName sessionName author parent = withDB $
+    do
+      timestamp <- liftIO getCurrentTime
+      uuid      <- liftIO randomIO
+      let commentDB = CommentDB (UUID.toText uuid) comment author (map UUID.toText parent) (Text.toLower sessionName) (Text.toLower uploadName) timestamp
+      _ <- insert commentDB
+      return ()
+
+withDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
+withDB action = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> liftIO $
   do
-    runMigration migrateAll
-    timestamp <- liftIO getCurrentTime
-    uuid      <- liftIO randomIO
-    let commentDB = CommentDB (UUID.toText uuid) comment author (map UUID.toText parent) (Text.toLower sessionName) (Text.toLower uploadName) timestamp
-    _ <- insert commentDB
-    return ()
+    flip runSqlPersistMPool pool $
+      do
+        runMigration migrateAll
+        action
+  where
+    connStr = "host=localhost dbname=vandyland user=" <> username <> " password=" <> password <> " port=5432"
 
 dbToSubmission :: SubmissionDB -> Submission
 dbToSubmission (SubmissionDB _ uploadName image metadata _ _) = Submission uploadName image metadata
