@@ -9,10 +9,11 @@ import Control.Monad.IO.Class(liftIO)
 import Data.Bifoldable(bimapM_)
 import Data.Validation(_Success)
 
-import qualified Data.Map  as Map
-import qualified Data.UUID as UUID
+import qualified Data.Map           as Map
+import qualified Data.Text.Encoding as TextEncoding
+import qualified Data.UUID          as UUID
 
-import Snap.Core(dir, Method(GET, POST), route, Snap, writeText)
+import Snap.Core(dir, getParam, Method(GET, POST), route, Snap, writeText)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Snap.Util.GZip(withCompression)
@@ -25,7 +26,7 @@ main :: IO ()
 main = quickHttpServe site
 
 site :: Snap ()
-site = route [ ("echo"                                 ,                   allowingCORS POST handleEchoData)
+site = route [ ("echo/:param"                          ,                   allowingCORS POST handleEchoData)
              , ("new-session"                          ,                   allowingCORS POST handleNewSession)
              , ("uploads"                              ,                   allowingCORS POST handleUpload)
              , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
@@ -36,11 +37,13 @@ site = route [ ("echo"                                 ,                   allow
              ] <|> dir "html" (serveDirectory "html")
 
 handleEchoData :: Snap ()
-handleEchoData = (handleUploadsTo "dist/filetmp") >>= (bimapM_ fail succeed)
+handleEchoData = handle1 ("param", [NonEmpty]) (\param -> (handleUploadsTo "dist/filetmp") >>= (bimapM_ fail $ continue param))
   where
-    fail             = unlines >>> writeText >>> failWith 400
-    succeed          = lookupFold (\k -> notifyBadParams [k]) writeText "data"
-    lookupFold f g k = (Map.lookup k) >>> (maybe (f k) g)
+    fail = unlines >>> writeText >>> failWith 400
+    continue param fileMap =
+      do
+        prm <- getParam $ TextEncoding.encodeUtf8 param
+        maybe (notifyBadParams [param]) writeText ((map TextEncoding.decodeUtf8 prm) <|> (Map.lookup param fileMap))
 
 handleNewSession :: Snap ()
 handleNewSession = generateName |> (liftIO >=> writeText)
