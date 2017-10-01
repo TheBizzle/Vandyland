@@ -12,7 +12,7 @@ module Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSu
 import Bizzlelude
 
 import Control.Monad.IO.Class(liftIO)
-import Control.Monad.Logger(NoLoggingT, runStderrLoggingT)
+import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
 import Control.Monad.Trans.Resource(ResourceT)
 
@@ -101,7 +101,7 @@ writeComment comment uploadName sessionName author parent = withDB $
       return ()
 
 withDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
-withDB action = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> liftIO $
+withDB action = runNoLoggingT $ withPostgresqlPool connStr 10 $ \pool -> liftIO $
   do
     flip runSqlPersistMPool pool $
       do
