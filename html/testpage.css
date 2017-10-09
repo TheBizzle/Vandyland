@@ -17,7 +17,7 @@
   border:         2px solid black;
   border-radius:  4px;
   min-height:     600px;
-  width:          785px;
+  width:          800px;
 }
 
 .header {
@@ -45,9 +45,10 @@
   display:        flex;
   align-items:    center;
   flex-direction: column;
+  max-width:      250px;
   padding:        8px;
-  height:         245px;
-  width:          245px;
+  height:         250px;
+  width:          250px;
 }
 
 .upload-form-fields {
@@ -60,4 +61,11 @@
 .upload-image {
   max-height: 230px;
   max-width:  230px;
+}
+
+.upload-label {
+  max-width:     inherit;
+  overflow-x:    hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
 }

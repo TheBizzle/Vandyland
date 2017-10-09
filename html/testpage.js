@@ -54,9 +54,10 @@ let sync = function() {
           Promise.all([dataPromise, commentsPromise]).then(([data, comments]) => showModal(getSessionName(), entry.uploadName, entry.metadata, data, comments, entry.base64Image, commentURL));
         };
 
-        let label   = document.createElement("span");
-        let boldStr = function(str) { return '<span style="font-weight: bold;">' + str + '</span>' };
+        let label       = document.createElement("span");
+        let boldStr     = function(str) { return '<span style="font-weight: bold;">' + str + '</span>' };
         label.innerHTML = entry.metadata === null ? boldStr(entry.uploadName) : boldStr(entry.uploadName) + " by " + boldStr(entry.metadata);
+        label.classList.add("upload-label")
 
         let container = document.createElement("div")
         container.appendChild(img);
