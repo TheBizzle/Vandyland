@@ -3,6 +3,10 @@ module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, f
 
 import Bizzlelude
 
+import Codec.Compression.GZip(decompress)
+import Codec.Compression.Zlib.Internal(DecompressError)
+
+import Control.Exception(catch)
 import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
@@ -12,6 +16,8 @@ import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8, encodeUtf8)
 import Data.Text.IO(readFile)
 import Data.Validation(_Failure, _Success, AccValidation(AccSuccess, AccFailure))
+
+import Prelude(($!))
 
 import Snap.Core(getParam, method, Method, modifyResponse, setContentType, setResponseStatus, Snap, writeText)
 import Snap.CORS(applyCORS, defaultOptions)
@@ -137,7 +143,14 @@ withFileUploadsHelper directory =
       where
         key    = partInfo |> (partFileName >>> (fromMaybe "-") >>> decodeUtf8)
         lefty  = policyViolationExceptionReason  >>> (_Failure #) >>> return
-        righty = readFile >>> liftIO >=> ((key,) >>> (_Success #) >>> return)
+        righty = readPossibleGZip >>> liftIO >=> ((key,) >>> (_Success #) >>> return)
+          where
+            readPossibleGZip filepath = catch (readGZip filepath) (\e -> const (readFile filepath) (e :: DecompressError))
+              where
+                readGZip = (LazyByteString.readFile >=> (decompress >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict >>> return'))
+
+return' :: (Monad m) => a -> m a
+return' = (return $!)
 
 uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
 uncurry3 f (a, b, c) = f a b c
