@@ -20,7 +20,7 @@ import Snap.Util.GZip(withCompression)
 
 import Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, writeComment, writeSubmission)
 import NameGen(generateName)
-import SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, handleUploads, notifyBadParams, succeed, uncurry4)
+import SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, notifyBadParams, succeed, uncurry4, withFileUploads)
 
 main :: IO ()
 main = quickHttpServe site
@@ -37,7 +37,7 @@ site = route [ ("echo/:param"                          ,                   allow
              ] <|> dir "html" (serveDirectory "html")
 
 handleEchoData :: Snap ()
-handleEchoData = handle1 ("param", [NonEmpty]) $ \param -> handleUploads $ \fileMap -> do
+handleEchoData = handle1 ("param", [NonEmpty]) $ \param -> withFileUploads $ \fileMap -> do
   prm <- getParam $ TextEncoding.encodeUtf8 param
   maybe (notifyBadParams [param]) writeText ((map TextEncoding.decodeUtf8 prm) <|> (Map.lookup param fileMap))
 

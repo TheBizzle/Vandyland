@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, handleUploads, notifyBadParams, succeed, uncurry3, uncurry4, uncurry5, withUploads) where
+module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, notifyBadParams, succeed, uncurry3, uncurry4, uncurry5, withFileUploads) where
 
 import Bizzlelude
 
@@ -114,11 +114,11 @@ succeed contentType output =
     modifyResponse $ setContentType contentType
     writeText output
 
-handleUploads :: (Map Text Text -> Snap ()) -> Snap ()
-handleUploads f = (withUploads "dist/filetmp") >>= (bimapM_ (unlines >>> writeText >>> failWith 400) f)
+withFileUploads :: (Map Text Text -> Snap ()) -> Snap ()
+withFileUploads f = (withFileUploadsHelper "dist/filetmp") >>= (bimapM_ (unlines >>> writeText >>> failWith 400) f)
 
-withUploads :: FilePath -> Snap (AccValidation [Text] (Map Text Text))
-withUploads directory =
+withFileUploadsHelper :: FilePath -> Snap (AccValidation [Text] (Map Text Text))
+withFileUploadsHelper directory =
   do
     liftIO $ createDirectoryIfMissing True directory
     fileMappingVs <- handleFileUploads directory defaultUploadPolicy (const $ allowWithMaximumSize 20000000) handleRead
