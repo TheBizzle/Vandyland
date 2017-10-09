@@ -41,6 +41,11 @@
   cursor:          pointer;
 }
 
+.item-details-controls {
+  display:        flex;
+  flex-direction: row;
+}
+
 .item-details-header {
   background-color: #5cb85c;
   color:            white;
@@ -82,7 +87,7 @@
   max-width: 100%;
 }
 
-.item-download-button {
+.item-details-button {
   font-size:     40px;
   height:        60px;
   width:         400px;

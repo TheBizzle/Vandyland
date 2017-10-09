@@ -28,11 +28,25 @@ let addCommentTo = function(commentsElem) { return function(comment) {
 
 }};
 
+saveWork = function(data, uploadName) { return function() {
+
+  let url = window.URL.createObjectURL(new Blob([data], { type: "octet/stream" }));
+
+  let a      = document.createElement("a");
+  a.href     = url;
+  a.download = uploadName + ".txt";
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+
+}};
+
 window.showModal = function(sessionName, uploadName, metadata, data, comments, imgSrc, commentURL) {
 
   document.getElementById("item-header"         ).innerText = metadata === null ? uploadName : uploadName + " by " + metadata;
   document.getElementById("item-details-image"  ).src       = imgSrc;
-  document.getElementById("item-download-button").onclick   = function() { alert("Data: " + JSON.stringify(data)); };
+  document.getElementById("item-download-button").onclick   = saveWork(data, uploadName);
+  document.getElementById("item-display-button" ).onclick   = function() { alert("Data: " + data); };
 
   let commentsElem = document.getElementById("item-comments");
   commentsElem.innerHTML = "";

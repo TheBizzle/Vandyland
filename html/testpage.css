@@ -37,6 +37,10 @@
   height: 10px;
 }
 
+.spacer-column {
+  width: 10px;
+}
+
 .upload-container {
   display:        flex;
   align-items:    center;
