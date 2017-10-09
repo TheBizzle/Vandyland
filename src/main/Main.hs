@@ -7,7 +7,7 @@ import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Bifoldable(bimapM_)
-import Data.Validation(_Success)
+import Data.Validation(_Failure, _Success, AccValidation)
 
 import qualified Data.Map           as Map
 import qualified Data.Text.Encoding as TextEncoding
@@ -29,6 +29,7 @@ site :: Snap ()
 site = route [ ("echo/:param"                          ,                   allowingCORS POST handleEchoData)
              , ("new-session"                          ,                   allowingCORS POST handleNewSession)
              , ("uploads"                              ,                   allowingCORS POST handleUpload)
+             , ("file-uploads"                         ,                   allowingCORS POST handleUploadFile)
              , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
              , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
              , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
@@ -62,13 +63,20 @@ handleSubmissionsLite =
       maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText)) ((readSubmissionsLite sessionID) >>> liftIO >=> encodeText >>> (succeed "application/json")) names
 
 handleUpload :: Snap ()
-handleUpload =
+handleUpload = (getParamV ("data", [])) >>= handleUploadHelper
+
+handleUploadFile :: Snap ()
+handleUploadFile = withFileUploads $ (lookupParam "data") >>> handleUploadHelper
+  where
+    lookupParam param fileMap = maybe (_Failure # ["Missing parameter: " <> param]) (_Success #) $ Map.lookup param fileMap
+
+handleUploadHelper :: AccValidation [Text] Text -> Snap ()
+handleUploadHelper datum =
   do
     sessionID <- getParamV ("session-id", [NonEmpty])
     image     <- getParamV ("image"     , [])
     metadata  <- getParamV ("metadata"  , [NonEmpty])
-    mainData  <- getParamV ("data"      , [])
-    let tupleV = (,,,) <$> sessionID <*> image <*> (map Just metadata <> (_Success # Nothing)) <*> mainData
+    let tupleV = (,,,) <$> sessionID <*> image <*> (map Just metadata <> (_Success # Nothing)) <*> datum
     bimapM_ notifyBadParams ((uncurry4 writeSubmission) >>> liftIO >=> writeText) tupleV
 
 handleGetComments :: Snap ()
