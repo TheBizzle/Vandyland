@@ -68,7 +68,7 @@ handleUpload = (getParamV ("data", [])) >>= handleUploadHelper
 handleUploadFile :: Snap ()
 handleUploadFile = withFileUploads $ (lookupParam "data") >>> handleUploadHelper
   where
-    lookupParam param fileMap = maybe (_Failure # ["Missing parameter: " <> param]) (_Success #) $ Map.lookup param fileMap
+    lookupParam param fileMap = maybe (_Failure # [param]) (_Success #) $ Map.lookup param fileMap
 
 handleUploadHelper :: AccValidation [Text] Text -> Snap ()
 handleUploadHelper datum =
