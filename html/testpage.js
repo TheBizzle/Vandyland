@@ -64,8 +64,6 @@ let sync = function() {
         container.appendChild(label);
         container.classList.add("upload-container");
 
-        knownNames.add(entry.uploadName);
-
         return container;
 
       });
@@ -77,6 +75,7 @@ let sync = function() {
   fetch(domain + "/names/" + getSessionName()).then(x => x.json()).then(
     function(names) {
       let newNames = names.filter((name) => !knownNames.has(name));
+      newNames.forEach((name) => knownNames.add(name));
       let formData = new FormData();
       formData.append("session-id", getSessionName());
       formData.append("names"     , JSON.stringify(newNames));
