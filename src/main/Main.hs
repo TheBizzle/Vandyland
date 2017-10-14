@@ -63,18 +63,21 @@ handleSubmissionsLite =
       maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText)) ((readSubmissionsLite sessionID) >>> liftIO >=> encodeText >>> (succeed "application/json")) names
 
 handleUpload :: Snap ()
-handleUpload = (getParamV ("data", [])) >>= handleUploadHelper
+handleUpload =
+  do
+    dataV  <- getParamV ("data" , [])
+    imageV <- getParamV ("image", [])
+    handleUploadHelper dataV imageV
 
 handleUploadFile :: Snap ()
-handleUploadFile = withFileUploads $ (lookupParam "data") >>> handleUploadHelper
+handleUploadFile = withFileUploads $ \fileMap -> handleUploadHelper (lookupParam "data" fileMap) (lookupParam "image" fileMap)
   where
     lookupParam param fileMap = maybe (_Failure # [param]) (_Success #) $ Map.lookup param fileMap
 
-handleUploadHelper :: AccValidation [Text] Text -> Snap ()
-handleUploadHelper datum =
+handleUploadHelper :: AccValidation [Text] Text -> AccValidation [Text] Text -> Snap ()
+handleUploadHelper datum image =
   do
     sessionID <- getParamV ("session-id", [NonEmpty])
-    image     <- getParamV ("image"     , [])
     metadata  <- getParamV ("metadata"  , [NonEmpty])
     let tupleV = (,,,) <$> sessionID <*> image <*> (map Just metadata <> (_Success # Nothing)) <*> datum
     bimapM_ notifyBadParams ((uncurry4 writeSubmission) >>> liftIO >=> writeText) tupleV
