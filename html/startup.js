@@ -35,7 +35,11 @@ saveWork = function(data, uploadName) { return function() {
   let a      = document.createElement("a");
   a.href     = url;
   a.download = uploadName + ".txt";
+  a.setAttribute("type", "hidden");
+
+  document.body.appendChild(a);
   a.click();
+  a.remove();
 
   window.URL.revokeObjectURL(url);
 
