@@ -1,5 +1,5 @@
 if (window.location.hash.length > 1) {
-  window.startSession(window.location.hash.substring(1));
+  window.startSession(decodeURIComponent(window.location.hash.substring(1)));
 }
 
 let uploadForm = document.getElementById("upload-form");
