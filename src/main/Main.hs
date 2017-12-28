@@ -20,7 +20,7 @@ import Snap.Util.GZip(withCompression)
 
 import Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, writeComment, writeSubmission)
 import NameGen(generateName)
-import SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, notifyBadParams, succeed, uncurry4, withFileUploads)
+import SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, notifyBadParams, succeed, withFileUploads)
 
 main :: IO ()
 main = quickHttpServe site

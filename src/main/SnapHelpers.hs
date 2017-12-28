@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, notifyBadParams, succeed, uncurry3, uncurry4, uncurry5, withFileUploads) where
+module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, notifyBadParams, succeed, withFileUploads) where
 
 import Bizzlelude
 
@@ -16,8 +16,6 @@ import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8, encodeUtf8)
 import Data.Text.IO(readFile)
 import Data.Validation(_Failure, _Success, AccValidation(AccSuccess, AccFailure))
-
-import Prelude(($!))
 
 import Snap.Core(getParam, method, Method, modifyResponse, setContentType, setResponseStatus, Snap, writeText)
 import Snap.CORS(applyCORS, defaultOptions)
@@ -148,15 +146,3 @@ withFileUploadsHelper directory =
             readPossibleGZip filepath = catch (readGZip filepath) (\e -> const (readFile filepath) (e :: DecompressError))
               where
                 readGZip = (LazyByteString.readFile >=> (decompress >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict >>> return'))
-
-return' :: (Monad m) => a -> m a
-return' = (return $!)
-
-uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
-uncurry3 f (a, b, c) = f a b c
-
-uncurry4 :: (a -> b -> c -> d -> e) -> ((a, b, c, d) -> e)
-uncurry4 f (a, b, c, d) = f a b c d
-
-uncurry5 :: (a -> b -> c -> d -> e -> f) -> ((a, b, c, d, e) -> f)
-uncurry5 f (a, b, c, d, e) = f a b c d e
