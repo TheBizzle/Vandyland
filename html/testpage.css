@@ -10,6 +10,10 @@
   font-weight: bold;
 }
 
+.comment-box:before {
+  content: "\feff ";
+}
+
 .gallery {
   display:        flex;
   flex-direction: row;
