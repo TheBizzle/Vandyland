@@ -92,14 +92,6 @@ window.upload = function(e) {
 
   if ((new Date().getTime() - lastUploadTime) > 1000) {
 
-    let callback = function(responseBody) {
-      clearInterval(uploadInterval);
-      sync();
-      uploadInterval = setInterval(sync, syncRate);
-    };
-
-    let failback = function() { alert(JSON.stringify(arguments)); };
-
     new Promise(
       function(resolve, reject) {
         let reader = new FileReader();
@@ -114,11 +106,19 @@ window.upload = function(e) {
         formData.set("image", imageEvent.result);
         formData.append("session-id", getSessionName());
         let params = Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
-        fetch(domain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(callback, failback);
+        return fetch(domain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
       } else {
         reject("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error));
       }
-    }).then(callback, failback);
+    }).then(function(response) {
+      if (response.status === 200) {
+        clearInterval(uploadInterval);
+        sync();
+        uploadInterval = setInterval(sync, syncRate);
+      } else {
+        response.text().then(function(body) { alert(JSON.stringify(body)) });
+      }
+    });
 
     lastUploadTime = new Date().getTime();
 
