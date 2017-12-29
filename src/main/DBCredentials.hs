@@ -1,9 +1,11 @@
+{-# LANGUAGE TemplateHaskell #-}
 module DBCredentials(password, username) where
 
 import Data.ByteString(ByteString)
+import Data.FileEmbed(embedFile)
 
 password :: ByteString
-password = ""
+password = $(embedFile ".db_password")
 
 username :: ByteString
-username = ""
+username = $(embedFile ".db_username")

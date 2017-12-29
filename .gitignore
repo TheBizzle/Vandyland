@@ -7,6 +7,8 @@
 
 tags
 
+/.db_username
+/.db_password
 /.ghci
 /.projections.json
 /.stack-work/
