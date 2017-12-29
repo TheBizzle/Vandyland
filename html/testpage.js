@@ -87,7 +87,7 @@ window.upload = function(e) {
 
   e.preventDefault();
 
-  if ((new Date().getTime() - lastUploadTime) > 1000) {
+  if ((new Date().getTime() - lastUploadTime) > syncRate) {
 
     new Promise(
       function(resolve, reject) {
@@ -115,6 +115,10 @@ window.upload = function(e) {
     });
 
     lastUploadTime = new Date().getTime();
+
+    let elem = document.getElementById('upload-submit-button');
+    elem.disabled = true;
+    setTimeout(function() { elem.disabled = false; }, syncRate);
 
   }
 
