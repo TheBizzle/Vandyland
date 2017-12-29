@@ -6,10 +6,12 @@ import Bizzlelude
 import Data.ByteString(ByteString)
 import Data.ByteString.Char8(split)
 import Data.FileEmbed(embedFile)
-import Data.List((!!))
+import Data.List((!!), filter)
 import Data.Text.Encoding(decodeUtf8)
 
 import System.Random(randomRIO)
+
+import qualified Data.ByteString as BS
 
 generateName :: IO Text
 generateName = (\x y -> x <> " " <> y) <$> (randomOneOf adjectives) <*> (randomOneOf animals)
@@ -27,4 +29,4 @@ animals :: [Text]
 animals = format $(embedFile "animals.txt")
 
 format :: ByteString -> [Text]
-format = (split '\n') >>> (map decodeUtf8)
+format = (split '\n') >>> (filter $ not . BS.null) >>> (map decodeUtf8)
