@@ -73,6 +73,17 @@ window.onclick = function(e) {
 // On Esc, hide the modal
 document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideModal(); } });
 
+window.makeQueryString = function(obj, formElem) {
+
+  let formData = new FormData(formElem);
+  for (let key in (obj || {})) {
+    formData.set(key, obj[key]);
+  }
+
+  return Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+
+};
+
 window.clearCommentFrom = function(id) {
   let elem = document.getElementById(id);
   elem.querySelector('.comment-box').innerText = "";
@@ -92,17 +103,7 @@ window.submitCommentFrom = function(id) {
 
   let [sessionName, uploadName, commentURL] = JSON.parse(document.getElementById("item-comment-area").dataset.postData);
 
-  let makeFormData =
-    function(parameters) {
-      let formData = new FormData();
-      for (let key in parameters) {
-        formData.set(key, parameters[key]);
-      }
-      return formData
-    };
-
-  let formData = makeFormData({ "session-id": sessionName, "item-id": uploadName, comment, author, parent: "" })
-  let params   = Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+  let params = makeQueryString({ "session-id": sessionName, "item-id": uploadName, comment, author, parent: "" })
   fetch(commentURL, { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } })
 
 };

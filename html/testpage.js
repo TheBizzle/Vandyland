@@ -76,10 +76,7 @@ let sync = function() {
     function(names) {
       let newNames = names.filter((name) => !knownNames.has(name));
       newNames.forEach((name) => knownNames.add(name));
-      let formData = new FormData();
-      formData.append("session-id", getSessionName());
-      formData.append("names"     , JSON.stringify(newNames));
-      let params = Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+      let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames) });
       return fetch(domain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
     }
   ).then(x => x.json()).then(callback);
@@ -102,10 +99,7 @@ window.upload = function(e) {
       }
     ).then(function(imageEvent) {
       if (imageEvent.result) {
-        let formData = new FormData(document.getElementById("upload-form"));
-        formData.set("image", imageEvent.result);
-        formData.append("session-id", getSessionName());
-        let params = Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+        let params = makeQueryString({ "image": imageEvent.result, "session-id": getSessionName() }, document.getElementById("upload-form"));
         return fetch(domain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
       } else {
         reject("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error));
