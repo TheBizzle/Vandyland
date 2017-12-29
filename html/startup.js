@@ -75,12 +75,14 @@ document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideMod
 
 window.makeQueryString = function(obj, formElem) {
 
+  let removeCRs = (str) => str.replace(/\r/g, '');
+
   let formData = new FormData(formElem);
   for (let key in (obj || {})) {
     formData.set(key, obj[key]);
   }
 
-  return Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+  return Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))).join("&");
 
 };
 
