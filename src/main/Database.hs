@@ -115,7 +115,7 @@ writeComment comment uploadName sessionName author parent = withDB $
       return ()
 
 withDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
-withDB action = runNoLoggingT $ withPostgresqlPool connStr 10 $ \pool -> liftIO $
+withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO $
   do
     flip runSqlPersistMPool pool $
       do
