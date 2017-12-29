@@ -18,8 +18,7 @@ import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Snap.Util.GZip(withCompression)
 
-import Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, writeComment, writeSubmission)
-import NameGen(generateName)
+import Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission)
 import SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, notifyBadParams, succeed, withFileUploads)
 
 main :: IO ()
@@ -43,7 +42,7 @@ handleEchoData = handle1 ("param", [NonEmpty]) $ \param -> withFileUploads $ \fi
   maybe (notifyBadParams [param]) writeText ((map TextEncoding.decodeUtf8 prm) <|> (Map.lookup param fileMap))
 
 handleNewSession :: Snap ()
-handleNewSession = generateName |> (liftIO >=> writeText)
+handleNewSession = uniqueSessionName |> (liftIO >=> writeText)
 
 handleListSession :: Snap ()
 handleListSession = handle1 ("session-id", [NonEmpty]) $ readSubmissionNames >>> liftIO >=> encodeText >>> (succeed "application/json")

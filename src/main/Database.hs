@@ -7,7 +7,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, writeComment, writeSubmission) where
+module Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission) where
 
 import Bizzlelude
 
@@ -57,6 +57,13 @@ CommentDB
     Primary uuid
     deriving Show
 |]
+
+uniqueSessionName :: IO Text
+uniqueSessionName = withDB $
+  do
+    name       <- liftIO generateName
+    entryMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower name)] []
+    if isJust entryMaybe then liftIO uniqueSessionName else return name
 
 readSubmissionNames :: Text -> IO [Text]
 readSubmissionNames sessionName = withDB $
