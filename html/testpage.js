@@ -2,7 +2,7 @@ let domain = "http://localhost:8000";
 
 let uploadInterval = undefined;
 let lastUploadTime = 0;
-let syncRate       = 1000;
+let syncRate       = 5000;
 let knownNames     = new Set();
 
 let setSessionName = function(name) {
