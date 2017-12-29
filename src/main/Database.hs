@@ -65,6 +65,13 @@ uniqueSessionName = withDB $
     entryMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower name)] []
     if isJust entryMaybe then liftIO uniqueSessionName else return name
 
+uniqueSubmissionName :: Text -> IO Text
+uniqueSubmissionName sessionName = withDB $
+  do
+    name       <- liftIO generateName
+    entryMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower name)] []
+    if isJust entryMaybe then liftIO (uniqueSubmissionName sessionName) else return name
+
 readSubmissionNames :: Text -> IO [Text]
 readSubmissionNames sessionName = withDB $
     do
@@ -86,7 +93,7 @@ readSubmissionsLite sessionName names = withDB $
 writeSubmission :: Text -> Text -> (Maybe Text) -> Text -> IO Text
 writeSubmission sessionName imageBytes metadata extraData = withDB $
     do
-      uploadName <- liftIO generateName
+      uploadName <- liftIO $ uniqueSubmissionName sessionName
       timestamp  <- liftIO getCurrentTime
       let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes metadata extraData timestamp
       _ <- insert subDB
