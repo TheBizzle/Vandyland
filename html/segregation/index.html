@@ -1,0 +1,28 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <div style="display: flex; flex-direction: row; width: 2000px;">
+      <iframe id="nlw_frame"     src="Segregation.html" height="750" width="975" ></iframe>
+      <iframe id="gallery_frame" src="Vandyland.html"   height="750" width="1000"></iframe>
+    </div>
+  </body>
+  <script type="text/javascript">
+    let receiveMessage = function(event) {
+      switch (event.data.type) {
+        case "export-code":
+          gallery_frame.contentWindow.postMessage(event.data, "*");
+          break;
+        case "code-upload-response":
+          nlw_frame.contentWindow.postMessage(event.data, "*");
+          break;
+        case "import-code":
+          nlw_frame.contentWindow.postMessage(event.data, "*");
+          break;
+        default:
+          console.log("Lord Octopus: Ignoring message of type '" + event.type + "'");
+      }
+    }
+    window.addEventListener("message", receiveMessage, false);
+  </script>
+</html>
