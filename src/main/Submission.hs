@@ -1,8 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Submission(Submission(..)) where
 
-import Bizzlelude
-
 import Data.Aeson(ToJSON)
 
 import GHC.Generics(Generic)

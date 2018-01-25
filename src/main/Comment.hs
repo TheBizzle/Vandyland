@@ -1,9 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Comment(Comment(..)) where
 
-import Bizzlelude
-import Prelude(Integer)
-
 import Data.Aeson(ToJSON)
 
 import GHC.Generics(Generic)

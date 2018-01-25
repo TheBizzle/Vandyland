@@ -1,7 +1,5 @@
 module Main(main) where
 
-import Bizzlelude
-
 import Control.Applicative((<|>))
 import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)

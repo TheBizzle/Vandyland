@@ -9,8 +9,6 @@
 
 module Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission) where
 
-import Bizzlelude
-
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)

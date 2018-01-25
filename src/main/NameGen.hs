@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module NameGen(generateName) where
 
-import Bizzlelude
-
 import Data.ByteString(ByteString)
 import Data.ByteString.Char8(split)
 import Data.FileEmbed(embedFile)
