@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, notifyBadParams, succeed, withFileUploads) where
 
 import Codec.Compression.GZip(decompress)
@@ -12,10 +13,10 @@ import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8, encodeUtf8)
 import Data.Text.IO(readFile)
-import Data.Validation(_Failure, _Success, AccValidation(AccSuccess, AccFailure))
+import Data.Validation(_Failure, _Success, Validation(Success, Failure))
 
 import Snap.Core(getParam, method, Method, modifyResponse, setContentType, setResponseStatus, Snap, writeText)
-import Snap.CORS(applyCORS, defaultOptions)
+import Snap.Util.CORS(applyCORS, defaultOptions)
 import Snap.Util.FileUploads(allowWithMaximumSize, defaultUploadPolicy, handleFileUploads, PartInfo(partFileName), PolicyViolationException, policyViolationExceptionReason)
 
 import System.Directory(createDirectoryIfMissing)
@@ -80,7 +81,7 @@ decodeText = encodeUtf8 >>> LazyByteString.fromStrict >>> decode
 encodeText :: ToJSON a => a -> Text
 encodeText = encode >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict
 
-getParamV :: Arg -> Snap (AccValidation [Text] Text)
+getParamV :: Arg -> Snap (Validation [Text] Text)
 getParamV (paramName, constraints) =
   do
     param <- getParam paramName
@@ -118,22 +119,22 @@ succeed contentType output =
 withFileUploads :: (Map Text Text -> Snap ()) -> Snap ()
 withFileUploads f = (withFileUploadsHelper "dist/filetmp") >>= (bimapM_ (unlines >>> writeText >>> failWith 400) f)
 
-withFileUploadsHelper :: FilePath -> Snap (AccValidation [Text] (Map Text Text))
+withFileUploadsHelper :: FilePath -> Snap (Validation [Text] (Map Text Text))
 withFileUploadsHelper directory =
   do
     liftIO $ createDirectoryIfMissing True directory
     fileMappingVs <- handleFileUploads directory defaultUploadPolicy (const $ allowWithMaximumSize 20000000) handleRead
     fileMappingVs |> (sequenceV >>> (map Map.fromList) >>> return)
   where
-    sequenceV :: [AccValidation a b] -> AccValidation [a] [b]
+    sequenceV :: [Validation a b] -> Validation [a] [b]
     sequenceV = foldr helper (_Success # [])
       where
-        helper :: AccValidation a b -> AccValidation [a] [b] -> AccValidation [a] [b]
-        helper (AccSuccess s) (    (AccSuccess ss)) = _Success # (s:ss)
-        helper (AccFailure f) (    (AccFailure fs)) = _Failure # (f:fs)
-        helper (AccFailure f) (    (AccSuccess  _)) = _Failure #    [f]
-        helper (AccSuccess _) (res@(AccFailure  _)) = res
-    handleRead :: PartInfo -> (Either PolicyViolationException FilePath) -> IO (AccValidation Text (Text, Text))
+        helper :: Validation a b -> Validation [a] [b] -> Validation [a] [b]
+        helper (Success s) (    (Success ss)) = _Success # (s:ss)
+        helper (Failure f) (    (Failure fs)) = _Failure # (f:fs)
+        helper (Failure f) (    (Success  _)) = _Failure #    [f]
+        helper (Success _) (res@(Failure  _)) = res
+    handleRead :: PartInfo -> (Either PolicyViolationException FilePath) -> IO (Validation Text (Text, Text))
     handleRead partInfo = either lefty righty
       where
         key    = partInfo |> (partFileName >>> (fromMaybe "-") >>> decodeUtf8)

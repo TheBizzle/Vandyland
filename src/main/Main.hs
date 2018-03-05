@@ -5,7 +5,7 @@ import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Bifoldable(bimapM_)
-import Data.Validation(_Failure, _Success, AccValidation)
+import Data.Validation(_Failure, _Success, Validation)
 
 import qualified Data.Map           as Map
 import qualified Data.Text.Encoding as TextEncoding
@@ -71,7 +71,7 @@ handleUploadFile = withFileUploads $ \fileMap -> handleUploadHelper (lookupParam
   where
     lookupParam param fileMap = maybe (_Failure # [param]) (_Success #) $ Map.lookup param fileMap
 
-handleUploadHelper :: AccValidation [Text] Text -> AccValidation [Text] Text -> Snap ()
+handleUploadHelper :: Validation [Text] Text -> Validation [Text] Text -> Snap ()
 handleUploadHelper datum image =
   do
     sessionID <- getParamV ("session-id", [NonEmpty])
