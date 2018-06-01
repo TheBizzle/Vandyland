@@ -2,7 +2,6 @@ ant
 ape
 bat
 bear
-beaver
 bee
 beetle
 bird
