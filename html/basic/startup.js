@@ -98,18 +98,35 @@ window.onclick = function(e) {
 // On Esc, hide the modal
 document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideModal(); } });
 
-window.makeQueryString = function(obj, formElem) {
-
-  let removeCRs = (str) => str.replace(/\r/g, '');
-
-  let formData = new FormData(formElem);
+let makeEntriesFromFormData = function(obj, formData) {
   for (let key in (obj || {})) {
     formData.set(key, obj[key]);
   }
-
-  return Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))).join("&");
-
+  return formData.entries();
 };
+
+let makeEntriesShim = function(obj, formElem) {
+
+  let entryMap = new Map()
+
+  if (formElem !== undefined) {
+    Array.from(formElem.querySelectorAll("input[name]")).forEach((elem) => entryMap.set(elem.name, elem.value));
+  }
+
+  for (let key in (obj || {})) {
+    entryMap.set(key, obj[key]);
+  }
+
+  return Array.from(entryMap.entries());
+
+}
+
+window.makeQueryString = function(obj, formElem) {
+  let removeCRs = (str) => str.replace(/\r/g, '');
+  let formData  = new FormData(formElem);
+  let entries   = (formData.entries !== undefined) ? makeEntriesFromFormData(obj, formData) : makeEntriesShim(obj, formElem);
+  return Array.from(entries).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))).join("&");
+}
 
 window.clearCommentFrom = function(id) {
   let elem = document.getElementById(id);
