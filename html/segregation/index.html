@@ -11,13 +11,13 @@
     let receiveMessage = function(event) {
       switch (event.data.type) {
         case "export-code":
-          gallery_frame.contentWindow.postMessage(event.data, "*");
+          document.getElementById("gallery_frame").contentWindow.postMessage(event.data, "*");
           break;
         case "code-upload-response":
-          nlw_frame.contentWindow.postMessage(event.data, "*");
+          document.getElementById("nlw_frame").contentWindow.postMessage(event.data, "*");
           break;
         case "import-code":
-          nlw_frame.contentWindow.postMessage(event.data, "*");
+          document.getElementById("nlw_frame").contentWindow.postMessage(event.data, "*");
           break;
         default:
           console.log("Lord Octopus: Ignoring message of type '" + event.type + "'");
