@@ -6,7 +6,7 @@ Vandyland
   * If your machine doesn't already have it, you might need to [install libgmp](http://www.mathemagix.org/www/mmdoc/doc/html/external/gmp.en.html)
   * [Download Stack](https://docs.haskellstack.org/en/stable/README/)
   * [Download Postgresql](https://www.postgresql.org/download/) (this tends to be the most troublesome part)
-    * Vandyland hasn't been tested with any Postgres version by Postgres 9, so use other versions at your own risk
+    * Vandyland hasn't been tested with any Postgres version but Postgres 9, so use other versions at your own risk
     * After you think you've gotten Postgres set up, ensure that `psql --version` and `pg_config --version` print version numbers; if not, your installation is probably broken
     * Ensure that that the Postgres server is running by performing `ps aux | grep postgres` and looking for a `postgres` process; if not, you need to launch the server, which can be done by running `pt_ctl start` (or [these instructions](https://www.postgresql.org/docs/9.1/static/server-start.html))
     * If you get an error in the coming steps that says "Missing C library: pq", you need to get Postgres stuff onto your PATH; on Red Hat, this can be accomplished by installing `postgresql*-devel` through `yum`
