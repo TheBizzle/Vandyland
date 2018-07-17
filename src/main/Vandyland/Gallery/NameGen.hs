@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module NameGen(generateName) where
+module Vandyland.Gallery.NameGen(generateName) where
 
 import Data.ByteString(ByteString)
 import Data.ByteString.Char8(split)

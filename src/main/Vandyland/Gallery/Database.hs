@@ -7,7 +7,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission) where
+module Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission) where
 
 import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
@@ -29,10 +29,11 @@ import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSet
 
 import System.Random(randomIO)
 
-import Comment(Comment(Comment, time))
-import DBCredentials(password, username)
-import NameGen(generateName)
-import Submission(Submission(Submission))
+import Vandyland.Common.DBCredentials(password, username)
+
+import Vandyland.Gallery.Comment(Comment(Comment, time))
+import Vandyland.Gallery.NameGen(generateName)
+import Vandyland.Gallery.Submission(Submission(Submission))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 SubmissionDB

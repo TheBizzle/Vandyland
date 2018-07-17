@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Comment(Comment(..)) where
+module Vandyland.Gallery.Comment(Comment(..)) where
 
 import Data.Aeson(ToJSON)
 

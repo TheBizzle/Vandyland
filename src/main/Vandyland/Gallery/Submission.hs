@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Submission(Submission(..)) where
+module Vandyland.Gallery.Submission(Submission(..)) where
 
 import Data.Aeson(ToJSON)
 

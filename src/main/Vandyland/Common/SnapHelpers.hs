@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, notifyBadParams, succeed, withFileUploads) where
+module Vandyland.Common.SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, notifyBadParams, succeed, withFileUploads) where
 
 import Codec.Compression.GZip(decompress)
 import Codec.Compression.Zlib.Internal(DecompressError)

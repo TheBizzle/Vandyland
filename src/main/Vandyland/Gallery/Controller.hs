@@ -1,38 +1,35 @@
-module Main(main) where
+module Vandyland.Gallery.Controller(routes) where
 
 import Control.Applicative((<|>))
 import Control.Lens((#))
 import Control.Monad.IO.Class(liftIO)
 
 import Data.Bifoldable(bimapM_)
+import Data.ByteString(ByteString)
 import Data.Validation(_Failure, _Success, Validation)
 
 import qualified Data.Map           as Map
 import qualified Data.Text.Encoding as TextEncoding
 import qualified Data.UUID          as UUID
 
-import Snap.Core(dir, getParam, Method(GET, POST), route, Snap, writeText)
-import Snap.Http.Server(quickHttpServe)
-import Snap.Util.FileServe(serveDirectory)
+import Snap.Core(getParam, Method(GET, POST), Snap, writeText)
 import Snap.Util.GZip(withCompression)
 
-import Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission)
-import SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, notifyBadParams, succeed, withFileUploads)
+import Vandyland.Common.SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle5, notifyBadParams, succeed, withFileUploads)
 
-main :: IO ()
-main = quickHttpServe site
+import Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission)
 
-site :: Snap ()
-site = route [ ("echo/:param"                          ,                   allowingCORS POST handleEchoData)
-             , ("new-session"                          ,                   allowingCORS POST handleNewSession)
-             , ("uploads"                              ,                   allowingCORS POST handleUpload)
-             , ("file-uploads"                         ,                   allowingCORS POST handleUploadFile)
-             , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
-             , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
-             , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
-             , ("names/:session-id"                    , withCompression $ allowingCORS GET  handleListSession)
-             , ("data-lite"                            , withCompression $ allowingCORS POST handleSubmissionsLite)
-             ] <|> dir "html" (serveDirectory "html")
+routes :: [(ByteString, Snap ())]
+routes = [ ("echo/:param"                          ,                   allowingCORS POST handleEchoData)
+         , ("new-session"                          ,                   allowingCORS POST handleNewSession)
+         , ("uploads"                              ,                   allowingCORS POST handleUpload)
+         , ("file-uploads"                         ,                   allowingCORS POST handleUploadFile)
+         , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
+         , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
+         , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
+         , ("names/:session-id"                    , withCompression $ allowingCORS GET  handleListSession)
+         , ("data-lite"                            , withCompression $ allowingCORS POST handleSubmissionsLite)
+         ]
 
 handleEchoData :: Snap ()
 handleEchoData = handle1 ("param", [NonEmpty]) $ \param -> withFileUploads $ \fileMap -> do
