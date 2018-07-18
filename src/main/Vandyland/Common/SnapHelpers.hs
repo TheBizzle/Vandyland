@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module Vandyland.Common.SnapHelpers(allowingCORS, Constraint(NonEmpty), decodeText, encodeText, failWith, getParamV, handle1, handle2, handle3, handle4, handle5, notifyBadParams, succeed, withFileUploads) where
+module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
 
 import Codec.Compression.GZip(decompress)
 import Codec.Compression.Zlib.Internal(DecompressError)
@@ -13,6 +13,7 @@ import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8, encodeUtf8)
 import Data.Text.IO(readFile)
+import Data.UUID(UUID)
 import Data.Validation(_Failure, _Success, Validation(Success, Failure))
 
 import Snap.Core(getParam, method, Method, modifyResponse, setContentType, setResponseStatus, Snap, writeText)
@@ -21,23 +22,27 @@ import Snap.Util.FileUploads(allowWithMaximumSize, defaultUploadPolicy, handleFi
 
 import System.Directory(createDirectoryIfMissing)
 
+import Text.Read(readMaybe)
+
 import qualified Data.ByteString.Lazy    as LazyByteString
 import qualified Data.Map                as Map
 import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
+import qualified Data.UUID               as UUID
 
-data Constraint
-  = NonEmpty
+data Constraint t =
+  Constraint (ByteString -> Text -> Validation [Text] t)
 
-type Arg = (ByteString, [Constraint])
+data Arg t =
+  Arg ByteString (Constraint t)
 
-handle1 :: Arg -> (Text -> Snap ()) -> Snap ()
+handle1 :: Arg t -> (t -> Snap ()) -> Snap ()
 handle1 arg onSuccess =
   do
     arg <- getParamV arg
     bimapM_ notifyBadParams onSuccess arg
 
-handle2 :: (Arg, Arg) -> ((Text, Text) -> Snap ()) -> Snap ()
+handle2 :: (Arg t1, Arg t2) -> ((t1, t2) -> Snap ()) -> Snap ()
 handle2 (arg1, arg2) onSuccess =
   do
     arg1 <- getParamV arg1
@@ -45,7 +50,7 @@ handle2 (arg1, arg2) onSuccess =
     let tupleV = (,) <$> arg1 <*> arg2
     bimapM_ notifyBadParams onSuccess tupleV
 
-handle3 :: (Arg, Arg, Arg) -> ((Text, Text, Text) -> Snap ()) -> Snap ()
+handle3 :: (Arg t1, Arg t2, Arg t3) -> ((t1, t2, t3) -> Snap ()) -> Snap ()
 handle3 (arg1, arg2, arg3) onSuccess =
   do
     arg1 <- getParamV arg1
@@ -54,7 +59,7 @@ handle3 (arg1, arg2, arg3) onSuccess =
     let tupleV = (,,) <$> arg1 <*> arg2 <*> arg3
     bimapM_ notifyBadParams onSuccess tupleV
 
-handle4 :: (Arg, Arg, Arg, Arg) -> ((Text, Text, Text, Text) -> Snap ()) -> Snap ()
+handle4 :: (Arg t1, Arg t2, Arg t3, Arg t4) -> ((t1, t2, t3, t4) -> Snap ()) -> Snap ()
 handle4 (arg1, arg2, arg3, arg4) onSuccess =
   do
     arg1 <- getParamV arg1
@@ -64,7 +69,7 @@ handle4 (arg1, arg2, arg3, arg4) onSuccess =
     let tupleV = (,,,) <$> arg1 <*> arg2 <*> arg3 <*> arg4
     bimapM_ notifyBadParams onSuccess tupleV
 
-handle5 :: (Arg, Arg, Arg, Arg, Arg) -> ((Text, Text, Text, Text, Text) -> Snap ()) -> Snap ()
+handle5 :: (Arg t1, Arg t2, Arg t3, Arg t4, Arg t5) -> ((t1, t2, t3, t4, t5) -> Snap ()) -> Snap ()
 handle5 (arg1, arg2, arg3, arg4, arg5) onSuccess =
   do
     arg1 <- getParamV arg1
@@ -81,17 +86,14 @@ decodeText = encodeUtf8 >>> LazyByteString.fromStrict >>> decode
 encodeText :: ToJSON a => a -> Text
 encodeText = encode >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict
 
-getParamV :: Arg -> Snap (Validation [Text] Text)
-getParamV (paramName, constraints) =
+getParamV :: Arg to -> Snap (Validation [Text] to)
+getParamV (Arg paramName (Constraint constrain)) =
   do
     param <- getParam paramName
-    let deconstrained = deconstrain constraints param
-    return $ maybe (_Failure # [decodeUtf8 paramName]) (\x -> _Success # (decodeUtf8 x)) deconstrained
-  where
-    deconstrain _              Nothing = Nothing
-    deconstrain []                   x = x
-    deconstrain (NonEmpty:_) (Just "") = Nothing
-    deconstrain (NonEmpty:t)         x = deconstrain t x
+    let paramV = maybe (_Failure # [decodeUtf8 paramName]) (\x -> _Success # (decodeUtf8 x)) param
+    return $ case paramV of
+               (Success value) -> constrain paramName value
+               (Failure errs)  -> _Failure # errs
 
 allowingCORS :: Method -> Snap () -> Snap ()
 allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
@@ -115,6 +117,20 @@ succeed contentType output =
   do
     modifyResponse $ setContentType contentType
     writeText output
+
+asInt :: Constraint Int
+asInt = Constraint $ \paramName x -> (readMaybe (asString x) :: Maybe Int) |> (maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
+
+asUUID :: Constraint UUID
+asUUID = Constraint $ \paramName x -> (UUID.fromText x) |> (maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
+
+free :: Constraint Text
+free = Constraint $ \_ x -> _Success # x
+
+nonEmpty :: Constraint Text
+nonEmpty = Constraint $ (\paramName x -> case x of
+                                              "" -> _Failure # [(decodeUtf8 paramName) <> " cannot be empty"]
+                                              y  -> _Success # y)
 
 withFileUploads :: (Map Text Text -> Snap ()) -> Snap ()
 withFileUploads f = (withFileUploadsHelper "dist/filetmp") >>= (bimapM_ (unlines >>> writeText >>> failWith 400) f)
