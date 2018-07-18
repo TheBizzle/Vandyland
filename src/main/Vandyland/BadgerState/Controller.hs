@@ -11,7 +11,7 @@ import qualified Data.UUID as UUID
 import Snap.Core(Method(GET, POST), Snap, writeText)
 import Snap.Util.GZip(withCompression)
 
-import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asUUID, encodeText, failWith, handle1, handle2, handle3, nonEmpty, succeed)
+import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asNonNegInt, asUUID, encodeText, failWith, handle1, handle2, handle3, nonEmpty, succeed)
 
 import Vandyland.BadgerState.Database(joinGroup, readDataFor, readGroup, readSignalFor, writeData, writeSignal)
 import Vandyland.BadgerState.Datum(Datum(Datum))
@@ -42,7 +42,7 @@ handlePostData =
 
 handleFetchData :: Snap ()
 handleFetchData =
-  handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "n" asInt) $
+  handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "n" asNonNegInt) $
     (uncurry3 readDataFor) >>> liftIO >=> (map mkDatum) >>> encodeText >>> (succeed "application/json")
 
 handlePostSignal :: Snap ()

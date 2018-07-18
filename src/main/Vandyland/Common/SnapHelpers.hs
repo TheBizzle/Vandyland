@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
+module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
 
 import Codec.Compression.GZip(decompress)
 import Codec.Compression.Zlib.Internal(DecompressError)
@@ -99,7 +99,7 @@ allowingCORS :: Method -> Snap () -> Snap ()
 allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
 
 notifyBadParams :: [Text] -> Snap ()
-notifyBadParams = (map ("Missing parameter: " <>)) >>> unlines >>> writeText >>> (failWith 422)
+notifyBadParams = (map ("Missing/invalid parameter: " <>)) >>> unlines >>> writeText >>> (failWith 422)
 
 failWith :: Int -> Snap () -> Snap ()
 failWith x snap =
@@ -120,6 +120,10 @@ succeed contentType output =
 
 asInt :: Constraint Int
 asInt = Constraint $ \paramName x -> (readMaybe (asString x) :: Maybe Int) |> (maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
+
+asNonNegInt :: Constraint Int
+asNonNegInt = Constraint $ \paramName x -> (readMaybe (asString x) :: Maybe Int) |>
+  ((>>= (\n -> if n < 0 then Nothing else Just n)) >>> maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
 
 asUUID :: Constraint UUID
 asUUID = Constraint $ \paramName x -> (UUID.fromText x) |> (maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
