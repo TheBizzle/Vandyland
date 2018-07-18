@@ -31,10 +31,10 @@ Executable vandyland
 
 Library
   hs-source-dirs:      src/main
-  exposed-modules:     Vandyland.Gallery.Controller
+  exposed-modules:     Vandyland.BadgerState.Controller, Vandyland.Gallery.Controller
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings
-  other-modules:       Vandyland.Common.SnapHelpers, Vandyland.Common.DBCredentials, Vandyland.Gallery.Comment, Vandyland.Gallery.Database, Vandyland.Gallery.NameGen, Vandyland.Gallery.Submission
+  other-modules:       Vandyland.BadgerState.Database, Vandyland.BadgerState.Datum, Vandyland.Common.SnapHelpers, Vandyland.Common.DBCredentials, Vandyland.Gallery.Comment, Vandyland.Gallery.Database, Vandyland.Gallery.NameGen, Vandyland.Gallery.Submission
   GHC-Options:
     -Wall
     -Wcompat
