@@ -1,4 +1,4 @@
-let domain = "http://rendupo.com:8000";
+let domain = "https://localhost:8001";
 
 let uploadInterval = undefined;
 let lastUploadTime = 0;

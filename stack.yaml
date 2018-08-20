@@ -1,6 +1,10 @@
 packages:
 - .
 
+flags:
+  snap-server:
+    openssl: true
+
 extra-deps:
 - aeson-1.2.4.0
 - base-noprelude-4.10.1.0
