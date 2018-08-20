@@ -13,8 +13,14 @@ Vandyland
   * Next, you'll need to initialize the Postgres database tables.  From the command prompt, run `psql --username=postgres` and then `CREATE DATABASE vandyland WITH ENCODING='UTF8' CONNECTION LIMIT=-1;` and then `CREATE DATABASE badgerstate WITH ENCODING='UTF8' CONNECTION LIMIT=-1;`.
   * At the root of the repository, add the files `.db_username` and `.db_password`.  The former should contain your Postgres username (default: postgres), and the latter your Postgres password (default: \<empty string>).
   * Run the command `stack install happy` to ensure that the Happy build tool is available for the dependencies
-  * Run the server with `stack build && stack exec vandyland`
-  * If you want the test page to run swimmingly from non-localhost URL, update [the first line of `testpage.js`](https://github.com/TheBizzle/Vandyland/blob/master/html/testpage.js#L1) to reflect the URL of the server, and then hit the `/html/basic` URL with your browser.
+
+### Running
+
+  * To run the server without HTTP, run `stack build && stack exec vandyland`
+
+  * For HTTPS support, ensure that your SSL cert is accessible and run this command: `stack build && sudo /PATH/TO/STACK/stack exec --allow-different-user vandyland -- --port=80 --ssl-port=443 --ssl-cert=/PATH/TO/CERT/cert.pem --ssl-key=/PATH/TO/KEY/privkey.pem --ssl-address=0.0.0.0 --no-ssl-chain-cert` (your filenames for the key and cert may differ)
+
+  * If you want the test page to run swimmingly from non-localhost URL, update [the first line of `testpage.js`](https://github.com/TheBizzle/Vandyland/blob/master/html/basic/testpage.js#L1) to reflect the URL of the server, and then hit the `/html/basic` URL with your browser.
 
 ### API Docs
 
