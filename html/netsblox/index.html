@@ -59,7 +59,7 @@
   <script type="text/javascript">
 
     document.getElementById("nets_frame").addEventListener('load', function() {
-      fetch('./winblox.txt').then((response) => response.text()).then((blocks) => parent.postMessage({ blocks: blocks, name: "New project", type: "import-blocks" }, "*"));
+      fetch('./postwins.xml').then((response) => response.text()).then((blocks) => parent.postMessage({ blocks: blocks, name: "New project", type: "import-blocks" }, "*"));
     });
 
     let receiveMessage = function(event) {
