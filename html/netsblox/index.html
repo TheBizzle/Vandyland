@@ -7,6 +7,8 @@
     fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
       let netsFrame = document.getElementById("nets_frame")
       netsFrame.addEventListener('load', function() {
+        netsFrame.contentWindow.postMessage({ type: "set-variable", key: "locationHash", value: window.location.hash.substring(1) }, "*");
+        netsFrame.contentWindow.postMessage({ type: "set-variable", key: "domain"      , value: "https://localhost:8001"          }, "*");
         netsFrame.contentWindow.postMessage({ blocks: blocks, name: "New project", type: "import-blocks" }, "*");
       });
     })
