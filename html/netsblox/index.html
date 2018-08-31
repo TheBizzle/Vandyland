@@ -3,6 +3,14 @@
     <link href="/html/common/modal.css" rel="stylesheet">
     <link href="modal-overrides.css"    rel="stylesheet">
   </head>
+  <script type="text/javascript">
+    fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
+      let netsFrame = document.getElementById("nets_frame")
+      netsFrame.addEventListener('load', function() {
+        netsFrame.contentWindow.postMessage({ blocks: blocks, name: "New project", type: "import-blocks" }, "*");
+      });
+    })
+  </script>
   <body>
 
     <div style="display: flex; flex-direction: row; height: 100%; width: 100%;">
@@ -57,11 +65,6 @@
 
   </body>
   <script type="text/javascript">
-
-    document.getElementById("nets_frame").addEventListener('load', function() {
-      fetch('./postwins.xml').then((response) => response.text()).then((blocks) => parent.postMessage({ blocks: blocks, name: "New project", type: "import-blocks" }, "*"));
-    });
-
     let receiveMessage = function(event) {
       switch (event.data.type) {
         case "import-blocks":
@@ -74,9 +77,7 @@
           console.log("Lord Octopus: Ignoring message of type '" + event.type + "'");
       }
     }
-
     window.addEventListener("message", receiveMessage, false);
-
   </script>
 
   <script src="modal.js"></script>
