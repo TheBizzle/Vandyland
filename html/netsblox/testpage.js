@@ -106,15 +106,3 @@ window.upload = function({ code, image, summary, uploader }) {
   return false;
 
 };
-
-let receiveMessage = function(event) {
-  switch (event.data.type) {
-    case "export-code":
-      upload(event.data);
-      break;
-    default:
-      console.log("Vandyland: Ignoring message of type '" + event.type + "'");
-  }
-}
-
-window.addEventListener("message", receiveMessage, false);
