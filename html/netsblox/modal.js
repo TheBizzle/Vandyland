@@ -52,13 +52,21 @@ window.showModal = function({ sessionName, uploadName, metadata, data, comments,
 
   document.getElementById("item-summary").innerText = metadata.description;
 
-  let commentsElem = document.getElementById("item-comments");
-  commentsElem.innerHTML = "";
-  comments.forEach(addCommentTo(commentsElem));
+  if (!metadata.featured) {
 
-  document.getElementById("item-comment-area").dataset.postData = JSON.stringify([sessionName, uploadName, commentURL]);
+    document.getElementById('item-comment-area').classList.remove("hidden");
 
-  try { document.getElementById("item-comment-area").querySelector('.author-input').value =  localStorage.getItem("commenter-name"); } catch(e) {}
+    let commentsElem = document.getElementById("item-comments");
+    commentsElem.innerHTML = "";
+    comments.forEach(addCommentTo(commentsElem));
+
+    document.getElementById("item-comment-area").dataset.postData = JSON.stringify([sessionName, uploadName, commentURL]);
+
+    try { document.getElementById("item-comment-area").querySelector('.author-input').value =  localStorage.getItem("commenter-name"); } catch(e) {}
+
+  } else {
+    document.getElementById('item-comment-area').classList.add("hidden");
+  }
 
   document.getElementById("item-details").classList.remove("hidden");
 

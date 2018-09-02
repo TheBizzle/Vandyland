@@ -35,7 +35,8 @@ window.startSession = function(sessionName) {
 
 let sync = function() {
 
-  let gallery = document.getElementById('gallery');
+  let gallery  = document.getElementById('gallery');
+  let showcase = document.getElementById('showcase');
 
   let callback = function(entries) {
 
@@ -59,11 +60,18 @@ let sync = function() {
         container.appendChild(img);
         container.classList.add("upload-container");
 
+        if (metadata.featured) {
+          img      .classList.add("featured");
+          container.classList.add("featured");
+        }
+
         return container;
 
       });
 
-    Promise.all(containerPromises).then((containers) => containers.forEach((container) => gallery.appendChild(container)));
+    Promise.all(containerPromises).then((containers) => containers.forEach(function(container) {
+      (container.classList.contains("featured") ? showcase : gallery).appendChild(container);
+    }));
 
   };
 
