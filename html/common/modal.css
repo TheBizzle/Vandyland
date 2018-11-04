@@ -13,6 +13,8 @@
 .modal-content {
   position:           relative;
   background-color:   #fefefe;
+  display:            flex;
+  flex-direction:     column;
   margin:             auto;
   padding:            0;
   border:             1px solid #888;
@@ -53,9 +55,10 @@
 }
 
 .item-details-body {
-  padding: 0 15px;
+  flex-grow:  1;
+  max-height: initial;
   overflow-y: scroll;
-  max-height: 67%;
+  padding:    0 15px;
 }
 
 .item-details-footer {
