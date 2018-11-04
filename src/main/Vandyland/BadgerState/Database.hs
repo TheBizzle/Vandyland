@@ -7,7 +7,6 @@
 
 module Vandyland.BadgerState.Database(joinGroup, readDataFor, readGroup, readSignalFor, writeData, writeSignal) where
 
-import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
 import Control.Monad.Trans.Resource(ResourceT)
@@ -54,32 +53,32 @@ joinGroup :: Text -> IO UUID
 joinGroup groupID = withDB $
   do
     uuid <- liftIO randomIO
-    _ <- insert $ GroupDB (Text.toLower groupID) (UUID.toText uuid)
+    void $ insert $ GroupDB (Text.toLower groupID) (UUID.toText uuid)
     return uuid
 
 readDataFor :: Text -> UUID -> Int -> IO [(Text, UTCTime)]
 readDataFor groupID bucketID n = withDB $
   do
     rows <- selectList [DataDBGroupID ==. (Text.toLower groupID), DataDBBucketID ==. (UUID.toText bucketID)] [Desc DataDBDateAdded, LimitTo n]
-    return $ map (entityVal >>> (\(DataDB _ _ dataT time) -> (dataT, time))) rows
+    return $ map (entityVal &> (\(DataDB _ _ dataT time) -> (dataT, time))) rows
 
 readGroup :: Text -> IO [UUID]
 readGroup groupID = withDB $
   do
     rows <- selectList [GroupDBGroupID ==. (Text.toLower groupID)] []
-    return $ map (entityVal >>> (\(GroupDB _ uuid) -> fromJust $ UUID.fromText uuid)) rows
+    return $ map (entityVal &> (\(GroupDB _ uuid) -> fromJust $ UUID.fromText uuid)) rows
 
 readSignalFor :: Text -> UUID -> IO (Maybe (Text, UTCTime))
 readSignalFor groupID bucketID = withDB $
   do
     signalMaybe <- selectFirst [SignalDBGroupID ==. (Text.toLower groupID), SignalDBBucketID ==. (UUID.toText bucketID)] []
-    return $ map (entityVal >>> \(SignalDB _ _ signal timestamp) -> (signal, timestamp)) signalMaybe
+    return $ map (entityVal &> \(SignalDB _ _ signal timestamp) -> (signal, timestamp)) signalMaybe
 
 writeData :: Text -> UUID -> Text -> IO UTCTime
 writeData groupID bucketID dataT = withDB $
   do
     timestamp <- liftIO getCurrentTime
-    _ <- insert $ DataDB (Text.toLower groupID) (UUID.toText bucketID) dataT timestamp
+    void $ insert $ DataDB (Text.toLower groupID) (UUID.toText bucketID) dataT timestamp
     return timestamp
 
 writeSignal :: Text -> UUID -> Text -> IO UTCTime
@@ -87,7 +86,7 @@ writeSignal groupID bucketID signal = withDB $
   do
     timestamp <- liftIO getCurrentTime
     let sig = SignalDB (Text.toLower groupID) (UUID.toText bucketID) signal timestamp
-    _ <- upsert sig [SignalDBSignal =. signal, SignalDBTime =. timestamp]
+    void $ upsert sig [SignalDBSignal =. signal, SignalDBTime =. timestamp]
     return timestamp
 
 withDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a

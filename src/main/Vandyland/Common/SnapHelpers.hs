@@ -6,7 +6,6 @@ import Codec.Compression.Zlib.Internal(DecompressError)
 
 import Control.Exception(catch)
 import Control.Lens((#))
-import Control.Monad.IO.Class(liftIO)
 
 import Data.Aeson(decode, encode, FromJSON, ToJSON)
 import Data.Bifoldable(bimapM_)
@@ -81,10 +80,10 @@ handle5 (arg1, arg2, arg3, arg4, arg5) onSuccess =
     bimapM_ notifyBadParams onSuccess tupleV
 
 decodeText :: FromJSON a => Text -> Maybe a
-decodeText = encodeUtf8 >>> LazyByteString.fromStrict >>> decode
+decodeText = encodeUtf8 &> LazyByteString.fromStrict &> decode
 
 encodeText :: ToJSON a => a -> Text
-encodeText = encode >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict
+encodeText = encode &> LazyTextEncoding.decodeUtf8 &> LazyText.toStrict
 
 getParamV :: Arg to -> Snap (Validation [Text] to)
 getParamV (Arg paramName (Constraint constrain)) =
@@ -99,7 +98,7 @@ allowingCORS :: Method -> Snap () -> Snap ()
 allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
 
 notifyBadParams :: [Text] -> Snap ()
-notifyBadParams = (map ("Missing/invalid parameter: " <>)) >>> unlines >>> writeText >>> (failWith 422)
+notifyBadParams = (map ("Missing/invalid parameter: " <>)) &> unlines &> writeText &> (failWith 422)
 
 failWith :: Int -> Snap () -> Snap ()
 failWith x snap =
@@ -123,10 +122,10 @@ asInt = Constraint $ \paramName x -> (readMaybe (asString x) :: Maybe Int) |> (m
 
 asNonNegInt :: Constraint Int
 asNonNegInt = Constraint $ \paramName x -> (readMaybe (asString x) :: Maybe Int) |>
-  ((>>= (\n -> if n < 0 then Nothing else Just n)) >>> maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
+  (>>= (\n -> if n < 0 then Nothing else Just n)) &> maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #)
 
 asUUID :: Constraint UUID
-asUUID = Constraint $ \paramName x -> (UUID.fromText x) |> (maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
+asUUID = Constraint $ \paramName x -> (UUID.fromText x) |> maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #)
 
 free :: Constraint Text
 free = Constraint $ \_ x -> _Success # x
@@ -137,14 +136,14 @@ nonEmpty = Constraint $ (\paramName x -> case x of
                                               y  -> _Success # y)
 
 withFileUploads :: (Map Text Text -> Snap ()) -> Snap ()
-withFileUploads f = (withFileUploadsHelper "dist/filetmp") >>= (bimapM_ (unlines >>> writeText >>> failWith 400) f)
+withFileUploads f = (withFileUploadsHelper "dist/filetmp") >>= (bimapM_ (unlines &> writeText &> failWith 400) f)
 
 withFileUploadsHelper :: FilePath -> Snap (Validation [Text] (Map Text Text))
 withFileUploadsHelper directory =
   do
     liftIO $ createDirectoryIfMissing True directory
     fileMappingVs <- handleFileUploads directory defaultUploadPolicy (const $ allowWithMaximumSize 20000000) handleRead
-    fileMappingVs |> (sequenceV >>> (map Map.fromList) >>> return)
+    fileMappingVs |> sequenceV &> (map Map.fromList) &> return
   where
     sequenceV :: [Validation a b] -> Validation [a] [b]
     sequenceV = foldr helper (_Success # [])
@@ -157,10 +156,10 @@ withFileUploadsHelper directory =
     handleRead :: PartInfo -> (Either PolicyViolationException FilePath) -> IO (Validation Text (Text, Text))
     handleRead partInfo = either lefty righty
       where
-        key    = partInfo |> (partFileName >>> (fromMaybe "-") >>> decodeUtf8)
-        lefty  = policyViolationExceptionReason  >>> (_Failure #) >>> return
-        righty = readPossibleGZip >>> liftIO >=> ((key,) >>> (_Success #) >>> return)
+        key    = partInfo |> partFileName &> (fromMaybe "-") &> decodeUtf8
+        lefty  = policyViolationExceptionReason  &> (_Failure #) &> return
+        righty = readPossibleGZip &> liftIO &>= ((key,) &> (_Success #) &> return)
           where
             readPossibleGZip filepath = catch (readGZip filepath) (\e -> const (readFile filepath) (e :: DecompressError))
               where
-                readGZip = (LazyByteString.readFile >=> (decompress >>> LazyTextEncoding.decodeUtf8 >>> LazyText.toStrict >>> return'))
+                readGZip = LazyByteString.readFile &>= (decompress &> LazyTextEncoding.decodeUtf8 &> LazyText.toStrict &> return')

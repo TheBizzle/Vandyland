@@ -1,7 +1,5 @@
 module Vandyland.BadgerState.Controller(routes) where
 
-import Control.Monad.IO.Class(liftIO)
-
 import Data.ByteString(ByteString)
 import Data.Time(UTCTime)
 import Data.Time.Clock.POSIX(utcTimeToPOSIXSeconds)
@@ -28,32 +26,32 @@ routes = [ ("badgerstate/join/:group-id"                     , withCompression $
 handleJoinGroup :: Snap ()
 handleJoinGroup =
   handle1 (Arg "group-id" nonEmpty) $
-    joinGroup >>> liftIO >=> UUID.toText >>> (succeed "text/plain")
+    joinGroup &> liftIO &>= (UUID.toText &> (succeed "text/plain"))
 
 handleListGroup :: Snap ()
 handleListGroup =
   handle1 (Arg "group-id" nonEmpty) $
-    readGroup >>> liftIO >=> encodeText >>> (succeed "application/json")
+    readGroup &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handlePostData :: Snap ()
 handlePostData =
   handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "data" nonEmpty) $
-    (uncurry3 writeData) >>> liftIO >=> timeToText >>> (succeed "text/plain")
+    (uncurry3 writeData) &> liftIO &>= (timeToText &> (succeed "text/plain"))
 
 handleFetchData :: Snap ()
 handleFetchData =
   handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "n" asNonNegInt) $
-    (uncurry3 readDataFor) >>> liftIO >=> (map mkDatum) >>> encodeText >>> (succeed "application/json")
+    (uncurry3 readDataFor) &> liftIO &>= ((map mkDatum) &> encodeText &> (succeed "application/json"))
 
 handlePostSignal :: Snap ()
 handlePostSignal =
   handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "signal" nonEmpty) $
-    (uncurry3 writeSignal) >>> liftIO >=> timeToText >>> (succeed "text/plain")
+    (uncurry3 writeSignal) &> liftIO &>= (timeToText &> (succeed "text/plain"))
 
 handleFetchSignal :: Snap ()
 handleFetchSignal =
   handle2 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID) $ (\(groupID, bucketID) ->
-    (readSignalFor groupID bucketID) |> (liftIO >=>
+    (readSignalFor groupID bucketID) |> (liftIO &>=
       maybe (failWith 404 (writeText $ "No signal for " <> groupID <> "/" <> (UUID.toText bucketID) <> ""))
             (\(signal, timestamp) -> succeed "text/plain" ((timeToText timestamp) <> " | " <> signal)))
   )
@@ -62,7 +60,7 @@ mkDatum :: (Text, UTCTime) -> Datum
 mkDatum (value, time) = Datum value $ timeToInteger time
 
 timeToText :: UTCTime -> Text
-timeToText = timeToInteger >>> showText
+timeToText = timeToInteger &> showText
 
 timeToInteger :: UTCTime -> Integer
-timeToInteger = utcTimeToPOSIXSeconds >>> (* 1000) >>> round
+timeToInteger = utcTimeToPOSIXSeconds &> (* 1000) &> round

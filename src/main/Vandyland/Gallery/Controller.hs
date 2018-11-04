@@ -1,8 +1,6 @@
 module Vandyland.Gallery.Controller(routes) where
 
-import Control.Applicative((<|>))
 import Control.Lens((#))
-import Control.Monad.IO.Class(liftIO)
 
 import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
@@ -37,10 +35,10 @@ handleEchoData = handle1 (Arg "param" nonEmpty) $ \param -> withFileUploads $ \f
   maybe (notifyBadParams [param]) writeText ((map TextEncoding.decodeUtf8 prm) <|> (Map.lookup param fileMap))
 
 handleNewSession :: Snap ()
-handleNewSession = uniqueSessionName |> (liftIO >=> writeText)
+handleNewSession = uniqueSessionName |> liftIO &>= writeText
 
 handleListSession :: Snap ()
-handleListSession = handle1 (Arg "session-id" nonEmpty) $ readSubmissionNames >>> liftIO >=> encodeText >>> (succeed "application/json")
+handleListSession = handle1 (Arg "session-id" nonEmpty) $ readSubmissionNames &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
@@ -54,7 +52,7 @@ handleSubmissionsLite =
   handle2 (Arg "session-id" nonEmpty, Arg "names" free) $ \(sessionID, namesText) ->
     do
       let names = decodeText namesText :: Maybe [Text]
-      maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText)) ((readSubmissionsLite sessionID) >>> liftIO >=> encodeText >>> (succeed "application/json")) names
+      maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText)) ((readSubmissionsLite sessionID) &> liftIO &>= (encodeText &> (succeed "application/json"))) names
 
 handleUpload :: Snap ()
 handleUpload =
@@ -74,10 +72,10 @@ handleUploadHelper datum image =
     sessionID <- getParamV $ Arg "session-id" nonEmpty
     metadata  <- getParamV $ Arg "metadata"   nonEmpty
     let tupleV = (,,,) <$> sessionID <*> image <*> (map Just metadata <> (_Success # Nothing)) <*> datum
-    bimapM_ notifyBadParams ((uncurry4 writeSubmission) >>> liftIO >=> writeText) tupleV
+    bimapM_ notifyBadParams ((uncurry4 writeSubmission) &> liftIO &>= writeText) tupleV
 
 handleGetComments :: Snap ()
-handleGetComments = handle2 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty) $ (uncurry readCommentsFor) >>> liftIO >=> encodeText >>> (succeed "application/json")
+handleGetComments = handle2 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty) $ (uncurry readCommentsFor) &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleSubmitComment :: Snap ()
 handleSubmitComment =

@@ -8,7 +8,6 @@
 
 module Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission) where
 
-import Control.Monad.IO.Class(liftIO)
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
 import Control.Monad.Trans.Resource(ResourceT)
@@ -74,19 +73,19 @@ readSubmissionNames :: Text -> IO [Text]
 readSubmissionNames sessionName = withDB $
     do
       rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
-      return $ map (entityVal >>> extractUploadName) rows
+      return $ map (entityVal &> extractUploadName) rows
 
 readSubmissionData :: Text -> Text -> IO (Maybe Text)
 readSubmissionData sessionName uploadName = withDB $
     do
       sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
-      return $ map (entityVal >>> extractData) sub
+      return $ map (entityVal &> extractData) sub
 
 readSubmissionsLite :: Text -> [Text] -> IO [Submission]
 readSubmissionsLite sessionName names = withDB $
     do
       subs <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
-      return $ map (entityVal >>> dbToSubmission) subs
+      return $ map (entityVal &> dbToSubmission) subs
 
 writeSubmission :: Text -> Text -> (Maybe Text) -> Text -> IO Text
 writeSubmission sessionName imageBytes metadata extraData = withDB $
@@ -94,14 +93,14 @@ writeSubmission sessionName imageBytes metadata extraData = withDB $
       uploadName <- liftIO $ uniqueSubmissionName sessionName
       timestamp  <- liftIO getCurrentTime
       let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes metadata extraData timestamp
-      _ <- insert subDB
+      void $ insert subDB
       return uploadName
 
 readCommentsFor :: Text -> Text -> IO [Comment]
 readCommentsFor sessionName uploadName = withDB $
     do
       rows <- selectList [CommentDBSessionName ==. (Text.toLower sessionName), CommentDBUploadName ==. (Text.toLower uploadName)] [Asc CommentDBTime]
-      rows |> ((map $ entityVal >>> dbToComment) >>> (sortBy $ comparing time) >>> return)
+      rows |> (map $ entityVal &> dbToComment) &> (sortBy $ comparing time) &> return
 
 writeComment :: Text -> Text -> Text -> Text -> Maybe UUID -> IO ()
 writeComment comment uploadName sessionName author parent = withDB $
@@ -109,7 +108,7 @@ writeComment comment uploadName sessionName author parent = withDB $
       timestamp <- liftIO getCurrentTime
       uuid      <- liftIO randomIO
       let commentDB = CommentDB (UUID.toText uuid) comment author (map UUID.toText parent) (Text.toLower sessionName) (Text.toLower uploadName) timestamp
-      _ <- insert commentDB
+      void $ insert commentDB
       return ()
 
 withDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a

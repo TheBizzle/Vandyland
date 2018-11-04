@@ -27,4 +27,4 @@ animals :: [Text]
 animals = format $(embedFile "animals.txt")
 
 format :: ByteString -> [Text]
-format = (split '\n') >>> (filter $ not . BS.null) >>> (map decodeUtf8)
+format = (split '\n') &> (filter $ not . BS.null) &> (map decodeUtf8)
