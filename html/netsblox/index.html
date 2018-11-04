@@ -72,7 +72,9 @@
           break;
         case "ide-loaded":
           fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
-            window.setTimeout(() => { netsFrame.contentWindow.postMessage({ blocks: blocks, name: "New project", type: "import" }, "*"); }, 0);
+            netsFrame.contentWindow.postMessage({ key: "domain"      , value: "https://rendupo.com:8001"   , type: "set-variable" }, "*");
+            netsFrame.contentWindow.postMessage({ key: "locationHash", value: window.location.hash.slice(1), type: "set-variable" }, "*");
+            netsFrame.contentWindow.postMessage({ blocks: blocks, name: "New project", type: "import" }, "*");
           });
           break;
         default:
