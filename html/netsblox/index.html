@@ -3,21 +3,11 @@
     <link href="/html/common/modal.css" rel="stylesheet">
     <link href="modal-overrides.css"    rel="stylesheet">
   </head>
-  <script type="text/javascript">
-    fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
-      let netsFrame = document.getElementById("nets_frame")
-      netsFrame.addEventListener('load', function() {
-        netsFrame.contentWindow.postMessage({ type: "set-variable", key: "locationHash", value: window.location.hash.substring(1) }, "*");
-        netsFrame.contentWindow.postMessage({ type: "set-variable", key: "domain"      , value: "https://localhost:8001"          }, "*");
-        netsFrame.contentWindow.postMessage({ blocks: blocks, name: "New project", type: "import-blocks" }, "*");
-      });
-    })
-  </script>
   <body>
 
     <div style="display: flex; flex-direction: row; height: 100%; width: 100%;">
-      <iframe id="gallery_frame" src="Vandyland.html"         height="100%" width="20%" style="border: 2px solid black;"></iframe>
-      <iframe id="nets_frame"    src="http://localhost:8080/" height="100%" width="80%" style="border: 2px solid black; margin-left: -2px;"></iframe>
+      <iframe id="gallery_frame" src="Vandyland.html" height="100%" width="20%" style="border: 2px solid black;"></iframe>
+      <iframe id="nets_frame"    src=""               height="100%" width="80%" style="border: 2px solid black; margin-left: -2px;"></iframe>
     </div>
 
     <div id="item-details" class="modal hidden">
@@ -67,19 +57,31 @@
 
   </body>
   <script type="text/javascript">
+
+    const netsFrame = document.getElementById("nets_frame");
+    netsFrame.src = "netsblox.html" + window.location.hash;
+
     let receiveMessage = function(event) {
       switch (event.data.type) {
         case "import-blocks":
-          document.getElementById("nets_frame").contentWindow.postMessage(event.data, "*");
+          event.data.type = "import"
+          netsFrame.contentWindow.postMessage(event.data, "*");
           break;
         case "show-modal":
           showModal(event.data);
           break;
+        case "ide-loaded":
+          fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
+            window.setTimeout(() => { netsFrame.contentWindow.postMessage({ blocks: blocks, name: "New project", type: "import" }, "*"); }, 0);
+          });
+          break;
         default:
-          console.log("Lord Octopus: Ignoring message of type '" + event.type + "'");
+          console.log("Lord Octopus: Ignoring message of type '" + event.data.type + "'");
       }
     }
+
     window.addEventListener("message", receiveMessage, false);
+
   </script>
 
   <script src="modal.js"></script>
