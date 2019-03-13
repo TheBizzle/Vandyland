@@ -14,6 +14,14 @@
     <script type="text/javascript" src="https://editor.netsblox.org/dist/app.min.js"></script>
     <script type="text/javascript">
 
+      IDE_Morph.prototype.resourceURL = function () {
+        let args = Array.prototype.slice.call(arguments, 0);
+        let url  = "https://editor.netsblox.org/" + args.join('/');
+        return url;
+      };
+
+      let SERVER_URL_ORIG = SERVER_URL
+
       var world;
 
       window.onload = function () {
@@ -27,6 +35,41 @@
         requestAnimationFrame(loop);
         world.doOneCycle();
       }
+
+      SERVER_URL = "https://crossorigin.me/" + SERVER_URL_ORIG;
+
+      NetCloud.prototype.request = function (url, dict) {
+          var resolve,
+              reject,
+              promise = new Promise(function(res, rej) {
+                  resolve = res;
+                  reject = rej;
+              }),
+              data = JSON.stringify(dict);
+
+          url = SERVER_URL_ORIG + url;
+          var request = new XMLHttpRequest();
+
+          request.open('POST', url, true);
+          request.setRequestHeader(
+              'Content-Type',
+              'application/json'
+          );
+          request.withCredentials = true;
+          request.onreadystatechange = function () {
+              if (request.readyState === 4) {
+                  var badStatusCode = request.status > 299 || request.status < 200;
+                  if (badStatusCode || request.responseText &&
+                          request.responseText.indexOf('ERROR') === 0) {
+                      return reject(request);
+                  }
+                  resolve(JSON.parse(request.responseText));
+              }
+          };
+
+          request.send(data);
+          return promise;
+      };
 
     </script>
     <script type="text/javascript" src="https://editor.netsblox.org/on-message.js"></script>
