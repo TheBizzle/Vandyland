@@ -5,7 +5,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Vandyland.BadgerState.Database(joinGroup, readDataFor, readGroup, readSignalFor, writeData, writeSignal) where
+module Vandyland.BadgerState.Database(joinGroup, readGroup, readNDataFor, readSignalFor, writeData, writeSignal) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
@@ -56,8 +56,8 @@ joinGroup groupID = withDB $
     void $ insert $ GroupDB (Text.toLower groupID) (UUID.toText uuid)
     return uuid
 
-readDataFor :: Text -> UUID -> Int -> IO [(Text, UTCTime)]
-readDataFor groupID bucketID n = withDB $
+readNDataFor :: Text -> UUID -> Int -> IO [(Text, UTCTime)]
+readNDataFor groupID bucketID n = withDB $
   do
     rows <- selectList [DataDBGroupID ==. (Text.toLower groupID), DataDBBucketID ==. (UUID.toText bucketID)] [Desc DataDBDateAdded, LimitTo n]
     return $ map (entityVal &> (\(DataDB _ _ dataT time) -> (dataT, time))) rows
