@@ -5,14 +5,14 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Vandyland.BadgerState.Database(joinGroup, readGroup, readNDataFor, readSignalFor, writeData, writeSignal) where
+module Vandyland.BadgerState.Database(joinGroup, readDataFor, readGroup, readNDataFor, readSignalFor, writeData, writeSignal) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
 import Control.Monad.Trans.Resource(ResourceT)
 
 import Data.Maybe(fromJust)
-import Data.Time(getCurrentTime, UTCTime)
+import Data.Time(diffUTCTime, getCurrentTime, UTCTime)
 import Data.UUID(UUID)
 
 import qualified Data.Text as Text
@@ -56,6 +56,12 @@ joinGroup groupID = withDB $
     void $ insert $ GroupDB (Text.toLower groupID) (UUID.toText uuid)
     return uuid
 
+readDataFor :: Text -> UUID -> UTCTime -> IO [(Text, UTCTime)]
+readDataFor groupID bucketID refTime = withDB $
+  do
+    rows <- selectList [DataDBGroupID ==. (Text.toLower groupID), DataDBBucketID ==. (UUID.toText bucketID)] [Desc DataDBDateAdded]
+    return $ rows >>= (entityVal &> (\(DataDB _ _ dataT time) -> if time `isNewerThan` refTime then [(dataT, time)] else []))
+
 readNDataFor :: Text -> UUID -> Int -> IO [(Text, UTCTime)]
 readNDataFor groupID bucketID n = withDB $
   do
@@ -88,6 +94,9 @@ writeSignal groupID bucketID signal = withDB $
     let sig = SignalDB (Text.toLower groupID) (UUID.toText bucketID) signal timestamp
     void $ upsert sig [SignalDBSignal =. signal, SignalDBTime =. timestamp]
     return timestamp
+
+isNewerThan :: UTCTime -> UTCTime -> Bool
+isNewerThan x y = (diffUTCTime x y) > 0
 
 withDB :: ReaderT SqlBackend (NoLoggingT (ResourceT IO)) a -> IO a
 withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO $
