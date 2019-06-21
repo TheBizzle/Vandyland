@@ -63,4 +63,4 @@ timeToText :: UTCTime -> Text
 timeToText = timeToInteger &> showText
 
 timeToInteger :: UTCTime -> Integer
-timeToInteger = utcTimeToPOSIXSeconds &> (* 1000) &> round
+timeToInteger = utcTimeToPOSIXSeconds &> (* 1000000) &> floor
