@@ -30,7 +30,8 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 GroupDB
     groupID  Text
     bucketID Text
-    Primary groupID bucketID
+    dateAdded UTCTime
+    Primary groupID bucketID dateAdded
     deriving Show
 DataDB
     groupID   Text
@@ -52,8 +53,9 @@ SignalDB
 joinGroup :: Text -> IO UUID
 joinGroup groupID = withDB $
   do
-    uuid <- liftIO randomIO
-    void $ insert $ GroupDB (Text.toLower groupID) (UUID.toText uuid)
+    uuid      <- liftIO randomIO
+    timestamp <- liftIO getCurrentTime
+    void $ insert $ GroupDB (Text.toLower groupID) (UUID.toText uuid) timestamp
     return uuid
 
 readDataFor :: Text -> UUID -> UTCTime -> IO [(Text, UTCTime)]
@@ -72,7 +74,7 @@ readGroup :: Text -> IO [UUID]
 readGroup groupID = withDB $
   do
     rows <- selectList [GroupDBGroupID ==. (Text.toLower groupID)] []
-    return $ map (entityVal &> (\(GroupDB _ uuid) -> fromJust $ UUID.fromText uuid)) rows
+    return $ map (entityVal &> (\(GroupDB _ uuid _) -> fromJust $ UUID.fromText uuid)) rows
 
 readSignalFor :: Text -> UUID -> IO (Maybe (Text, UTCTime))
 readSignalFor groupID bucketID = withDB $
