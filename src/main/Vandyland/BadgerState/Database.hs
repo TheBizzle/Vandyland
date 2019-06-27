@@ -73,7 +73,7 @@ readNDataFor groupID bucketID n = withDB $
 readGroup :: Text -> IO [UUID]
 readGroup groupID = withDB $
   do
-    rows <- selectList [GroupDBGroupID ==. (Text.toLower groupID)] []
+    rows <- selectList [GroupDBGroupID ==. (Text.toLower groupID)] [Desc GroupDBDateAdded]
     return $ map (entityVal &> (\(GroupDB _ uuid _) -> fromJust $ UUID.fromText uuid)) rows
 
 readSignalFor :: Text -> UUID -> IO (Maybe (Text, UTCTime))
