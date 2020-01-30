@@ -59,23 +59,25 @@
   <script type="text/javascript">
 
     const netsFrame = document.getElementById("nets_frame");
-    netsFrame.src = "netsblox.html" + window.location.hash;
+
+    netsFrame.addEventListener("load", function() {
+      fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
+        netsFrame.contentWindow.postMessage({ key: "domain"      , value: window.location.origin, type: "set-variable" }, "*");
+        netsFrame.contentWindow.postMessage({ key: "locationHash", value: window.location.hash.slice(1), type: "set-variable" }, "*");
+        netsFrame.contentWindow.postMessage({ content: blocks, name: "New project", type: "import" }, "*");
+      });
+    });
+
+    netsFrame.src = "https://dev.netsblox.org/" + window.location.hash;
 
     let receiveMessage = function(event) {
       switch (event.data.type) {
         case "import-blocks":
-          event.data.type = "import"
+          event.data.type = "import";
           netsFrame.contentWindow.postMessage(event.data, "*");
           break;
         case "show-modal":
           showModal(event.data);
-          break;
-        case "ide-loaded":
-          fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
-            netsFrame.contentWindow.postMessage({ key: "domain"      , value: "https://rendupo.com:8001"   , type: "set-variable" }, "*");
-            netsFrame.contentWindow.postMessage({ key: "locationHash", value: window.location.hash.slice(1), type: "set-variable" }, "*");
-            netsFrame.contentWindow.postMessage({ blocks: blocks, name: "New project", type: "import" }, "*");
-          });
           break;
         default:
           console.log("Lord Octopus: Ignoring message of type '" + event.data.type + "'");

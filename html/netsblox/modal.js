@@ -48,7 +48,7 @@ window.showModal = function({ sessionName, uploadName, metadata, data, comments,
 
   document.getElementById("item-header"         ).innerText = metadata.uploader === null ? uploadName : uploadName + " by " + metadata.uploader;
   document.getElementById("item-details-image"  ).src       = image;
-  document.getElementById("item-download-button").onclick   = function() { parent.postMessage({ blocks: data, name: uploadName, type: "import-blocks" }, "*"); hideModal(); }
+  document.getElementById("item-download-button").onclick   = function() { parent.postMessage({ content: data, name: uploadName, type: "import-blocks" }, "*"); hideModal(); }
 
   document.getElementById("item-summary").innerText = metadata.description;
 
