@@ -63,7 +63,7 @@
 
     netsFrame.addEventListener("load", function() {
       fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
-        let hash = window.location.hash.slice(1);
+        let hash = decodeURIComponent(window.location.hash.slice(1));
         netsFrame.contentWindow.postMessage({ key: "domain"      , value: window.thisDomain, type: "set-variable" }, "*");
         netsFrame.contentWindow.postMessage({ key: "locationHash", value: hash             , type: "set-variable" }, "*");
         netsFrame.contentWindow.postMessage({ content: blocks, name: "New project", type: "import" }, "*");

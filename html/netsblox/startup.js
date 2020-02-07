@@ -1,4 +1,4 @@
-window.startSession(parent.location.hash.substring(1));
+window.startSession(decodeURIComponent(parent.location.hash.substring(1)));
 
 window.makeQueryString = function(obj, formElem) {
 
