@@ -3,6 +3,7 @@
     <link href="/html/common/modal.css" rel="stylesheet">
     <link href="modal-overrides.css"    rel="stylesheet">
   </head>
+  <script src="/html/common/globals.js"></script>
   <body>
 
     <div style="display: flex; flex-direction: row; height: 100%; width: 100%;">
@@ -62,8 +63,9 @@
 
     netsFrame.addEventListener("load", function() {
       fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
-        netsFrame.contentWindow.postMessage({ key: "domain"      , value: window.location.origin, type: "set-variable" }, "*");
-        netsFrame.contentWindow.postMessage({ key: "locationHash", value: window.location.hash.slice(1), type: "set-variable" }, "*");
+        let hash = window.location.hash.slice(1);
+        netsFrame.contentWindow.postMessage({ key: "domain"      , value: window.thisDomain, type: "set-variable" }, "*");
+        netsFrame.contentWindow.postMessage({ key: "locationHash", value: hash             , type: "set-variable" }, "*");
         netsFrame.contentWindow.postMessage({ content: blocks, name: "New project", type: "import" }, "*");
       });
     });

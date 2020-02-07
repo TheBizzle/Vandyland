@@ -1,5 +1,3 @@
-let domain = "https://localhost:8001";
-
 let uploadInterval = undefined;
 let lastUploadTime = 0;
 let syncRate       = 5000;
@@ -27,7 +25,7 @@ window.startSession = function(sessionName) {
   };
 
   if (sessionName === undefined) {
-    fetch(domain + "/new-session", { method: "POST" }).then((x) => x.text()).then(startup);
+    fetch(window.thisDomain + "/new-session", { method: "POST" }).then((x) => x.text()).then(startup);
   } else {
     startup(sessionName);
     sync()
@@ -48,9 +46,9 @@ let sync = function() {
         img.classList.add("upload-image");
         img.src = entry.base64Image;
         img.onclick = function() {
-          let dataPromise     = fetch(domain + "/uploads/"  + getSessionName() + "/" + entry.uploadName).then(x => x.text());
-          let commentsPromise = fetch(domain + "/comments/" + getSessionName() + "/" + entry.uploadName).then(x => x.json());
-          let commentURL      = domain + "/comments"
+          let dataPromise     = fetch(window.thisDomain + "/uploads/"  + getSessionName() + "/" + entry.uploadName).then(x => x.text());
+          let commentsPromise = fetch(window.thisDomain + "/comments/" + getSessionName() + "/" + entry.uploadName).then(x => x.json());
+          let commentURL      = window.thisDomain + "/comments"
           Promise.all([dataPromise, commentsPromise]).then(([data, comments]) => showModal(getSessionName(), entry.uploadName, entry.metadata, data, comments, entry.base64Image, commentURL));
         };
 
@@ -72,12 +70,12 @@ let sync = function() {
 
   };
 
-  fetch(domain + "/names/" + getSessionName()).then(x => x.json()).then(
+  fetch(window.thisDomain + "/names/" + getSessionName()).then(x => x.json()).then(
     function(names) {
       let newNames = names.filter((name) => !knownNames.has(name));
       newNames.forEach((name) => knownNames.add(name));
       let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames) });
-      return fetch(domain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+      return fetch(window.thisDomain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
     }
   ).then(x => x.json()).then(callback);
 
@@ -100,7 +98,7 @@ window.upload = function(e) {
     ).then(function(imageEvent) {
       if (imageEvent.result) {
         let params = makeQueryString({ "image": imageEvent.result, "session-id": getSessionName() }, document.getElementById("upload-form"));
-        return fetch(domain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+        return fetch(window.thisDomain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
       } else {
         reject("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error));
       }
