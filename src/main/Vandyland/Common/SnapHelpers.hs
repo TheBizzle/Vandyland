@@ -11,6 +11,7 @@ import Data.Aeson(decode, encode, FromJSON, ToJSON)
 import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8, encodeUtf8)
+import Data.Traversable(traverse)
 import Data.UUID(UUID)
 import Data.Validation(_Failure, _Success, Validation(Success, Failure))
 
@@ -148,18 +149,23 @@ withFileUploads :: (Map Text Text -> Snap ()) -> Snap ()
 withFileUploads f =
   do
     (formParams, formFiles) <- handleFormUploads uploadPolicy filePolicy handleRead
-    ((formParams <&> (mapAll2 decodeUtf8)) <> (formFiles <&> formFileValue)) |> Map.fromList &> f
+    let fileKVPairs         = formFiles <&> formFileValue
+    paramKVPairs            <- liftIO $ traverse processParamPair formParams
+    (paramKVPairs <> fileKVPairs) |> Map.fromList &> f
   where
     uploadPolicy = setMaximumFormInputSize _20MB defaultUploadPolicy
     filePolicy   = setMaximumFileSize      _20MB defaultFileUploadPolicy
     _20MB        = 20 * 1024 * 1024
 
+    processParamPair (k, v) = processThem (decodeUtf8 k) $ LazyByteString.fromStrict v
+
+    processThem key        = readPossibleGZip &> (key,) &> (\(k, mv) -> mv <&> (\v -> (k, v)))
+    readPossibleGZip input = catch (input |> decompress &> lbsToText &> return)
+                             (\e -> const (input |> lbsToText &> return) (e :: DecompressError))
+
     handleRead :: PartInfo -> InputStream ByteString -> IO (Text, Text)
-    handleRead partInfo = storeAsLazyByteString &>= processThem
+    handleRead partInfo = storeAsLazyByteString &>= (processThem extractedKey)
       where
-        processThem            = readPossibleGZip &> (key,) &> (\(k, mv) -> mv <&> (\v -> (k, v)))
-        key                    = partInfo |> partFileName &> (fromMaybe "-") &> decodeUtf8
-        readPossibleGZip input = catch (input |> decompress &> lbsToText &> return)
-                                       (\e -> const (input |> lbsToText &> return) (e :: DecompressError))
+        extractedKey = partInfo |> partFileName &> (fromMaybe "-") &> decodeUtf8
 
     lbsToText = LazyTextEncoding.decodeUtf8 &> LazyText.toStrict
