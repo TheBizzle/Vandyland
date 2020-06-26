@@ -13,7 +13,7 @@ import qualified Data.UUID          as UUID
 import Snap.Core(getParam, Method(GET, POST), Snap, writeText)
 import Snap.Util.GZip(withCompression)
 
-import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), decodeText, encodeText, failWith, free, getParamV, handle1, handle2, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
+import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
 import Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission)
 
@@ -59,18 +59,18 @@ handleUpload =
   do
     dataV  <- getParamV $ Arg "data"  free
     imageV <- getParamV $ Arg "image" free
-    handleUploadHelper dataV imageV
+    handleUploadHelper dataV imageV Map.empty
 
 handleUploadFile :: Snap ()
-handleUploadFile = withFileUploads $ \fileMap -> handleUploadHelper (lookupParam "data" fileMap) (lookupParam "image" fileMap)
+handleUploadFile = withFileUploads $ \fileMap -> handleUploadHelper (lookupParam "data" fileMap) (lookupParam "image" fileMap) fileMap
   where
     lookupParam param fileMap = maybe (_Failure # [param]) (_Success #) $ Map.lookup param fileMap
 
-handleUploadHelper :: Validation [Text] Text -> Validation [Text] Text -> Snap ()
-handleUploadHelper datum image =
+handleUploadHelper :: Validation [Text] Text -> Validation [Text] Text -> Map Text Text -> Snap ()
+handleUploadHelper datum image fileMap =
   do
-    sessionID <- getParamV $ Arg "session-id" nonEmpty
-    metadata  <- getParamV $ Arg "metadata"   nonEmpty
+    sessionID <- getParamVM fileMap $ Arg "session-id" nonEmpty
+    metadata  <- getParamVM fileMap $ Arg "metadata"   nonEmpty
     let tupleV = (,,,) <$> sessionID <*> image <*> (map Just metadata <> (_Success # Nothing)) <*> datum
     bimapM_ notifyBadParams ((uncurry4 writeSubmission) &> liftIO &>= writeText) tupleV
 

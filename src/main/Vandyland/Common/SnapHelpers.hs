@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
+module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
 
 import Codec.Compression.GZip(decompress)
 import Codec.Compression.Zlib.Internal(DecompressError)
@@ -11,15 +11,14 @@ import Data.Aeson(decode, encode, FromJSON, ToJSON)
 import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8, encodeUtf8)
-import Data.Text.IO(readFile)
 import Data.UUID(UUID)
 import Data.Validation(_Failure, _Success, Validation(Success, Failure))
 
 import Snap.Core(getParam, method, Method, modifyResponse, setContentType, setResponseStatus, Snap, writeText)
 import Snap.Util.CORS(applyCORS, defaultOptions)
-import Snap.Util.FileUploads(allowWithMaximumSize, defaultUploadPolicy, handleFileUploads, PartInfo(partFileName), PolicyViolationException, policyViolationExceptionReason)
+import Snap.Util.FileUploads(defaultFileUploadPolicy, defaultUploadPolicy, FormFile(formFileValue), handleFormUploads, PartInfo(partFileName), setMaximumFileSize, setMaximumFormInputSize, storeAsLazyByteString)
 
-import System.Directory(createDirectoryIfMissing)
+import System.IO.Streams(InputStream)
 
 import Text.Read(readMaybe)
 
@@ -94,6 +93,16 @@ getParamV (Arg paramName (Constraint constrain)) =
                (Success value) -> constrain paramName value
                (Failure errs)  -> _Failure # errs
 
+getParamVM :: Map Text Text -> Arg to -> Snap (Validation [Text] to)
+getParamVM paramMap (Arg paramName (Constraint constrain)) =
+  do
+    param <- getParam paramName
+    let paramA = (map decodeUtf8 param) <|> (Map.lookup (decodeUtf8 paramName) paramMap)
+    let paramV = maybe (_Failure # [decodeUtf8 paramName]) (_Success #) paramA
+    return $ case paramV of
+               (Success value) -> constrain paramName value
+               (Failure errs)  -> _Failure # errs
+
 allowingCORS :: Method -> Snap () -> Snap ()
 allowingCORS mthd f = applyCORS defaultOptions $ method mthd f
 
@@ -136,30 +145,21 @@ nonEmpty = Constraint $ (\paramName x -> case x of
                                               y  -> _Success # y)
 
 withFileUploads :: (Map Text Text -> Snap ()) -> Snap ()
-withFileUploads f = (withFileUploadsHelper "dist/filetmp") >>= (bimapM_ (unlines &> writeText &> failWith 400) f)
-
-withFileUploadsHelper :: FilePath -> Snap (Validation [Text] (Map Text Text))
-withFileUploadsHelper directory =
+withFileUploads f =
   do
-    liftIO $ createDirectoryIfMissing True directory
-    fileMappingVs <- handleFileUploads directory defaultUploadPolicy (const $ allowWithMaximumSize 20000000) handleRead
-    fileMappingVs |> sequenceV &> (map Map.fromList) &> return
+    (formParams, formFiles) <- handleFormUploads uploadPolicy filePolicy handleRead
+    ((formParams <&> (mapAll2 decodeUtf8)) <> (formFiles <&> formFileValue)) |> Map.fromList &> f
   where
-    sequenceV :: [Validation a b] -> Validation [a] [b]
-    sequenceV = foldr helper (_Success # [])
+    uploadPolicy = setMaximumFormInputSize _20MB defaultUploadPolicy
+    filePolicy   = setMaximumFileSize      _20MB defaultFileUploadPolicy
+    _20MB        = 20 * 1024 * 1024
+
+    handleRead :: PartInfo -> InputStream ByteString -> IO (Text, Text)
+    handleRead partInfo = storeAsLazyByteString &>= processThem
       where
-        helper :: Validation a b -> Validation [a] [b] -> Validation [a] [b]
-        helper (Success s) (    (Success ss)) = _Success # (s:ss)
-        helper (Failure f) (    (Failure fs)) = _Failure # (f:fs)
-        helper (Failure f) (    (Success  _)) = _Failure #    [f]
-        helper (Success _) (res@(Failure  _)) = res
-    handleRead :: PartInfo -> (Either PolicyViolationException FilePath) -> IO (Validation Text (Text, Text))
-    handleRead partInfo = either lefty righty
-      where
-        key    = partInfo |> partFileName &> (fromMaybe "-") &> decodeUtf8
-        lefty  = policyViolationExceptionReason  &> (_Failure #) &> return
-        righty = readPossibleGZip &> liftIO &>= ((key,) &> (_Success #) &> return)
-          where
-            readPossibleGZip filepath = catch (readGZip filepath) (\e -> const (readFile filepath) (e :: DecompressError))
-              where
-                readGZip = LazyByteString.readFile &>= (decompress &> LazyTextEncoding.decodeUtf8 &> LazyText.toStrict &> return')
+        processThem            = readPossibleGZip &> (key,) &> (\(k, mv) -> mv <&> (\v -> (k, v)))
+        key                    = partInfo |> partFileName &> (fromMaybe "-") &> decodeUtf8
+        readPossibleGZip input = catch (input |> decompress &> lbsToText &> return)
+                                       (\e -> const (input |> lbsToText &> return) (e :: DecompressError))
+
+    lbsToText = LazyTextEncoding.decodeUtf8 &> LazyText.toStrict
