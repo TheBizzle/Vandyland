@@ -97,8 +97,12 @@ window.upload = function(e) {
       }
     ).then(function(imageEvent) {
       if (imageEvent.result) {
-        let params = makeQueryString({ "image": imageEvent.result, "session-id": getSessionName() }, document.getElementById("upload-form"));
-        return fetch(window.thisDomain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+
+        let formData = new FormData(document.getElementById("upload-form"));
+        formData.set("image"     , imageEvent.result);
+        formData.set("session-id", getSessionName());
+        return fetch(window.thisDomain + "/file-uploads/", { method: "POST", body: formData });
+
       } else {
         reject("Image conversion failed somehow...?  Error: " + JSON.stringify(imageEvent.error));
       }

@@ -1,10 +1,8 @@
 {-# LANGUAGE TupleSections #-}
 module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
 
-import Codec.Compression.GZip(decompress)
-import Codec.Compression.Zlib.Internal(DecompressError)
+import Codec.Compression.Zlib.Internal(decompressST, defaultDecompressParams, foldDecompressStreamWithInput, gzipFormat)
 
-import Control.Exception(catch)
 import Control.Lens((#))
 
 import Data.Aeson(decode, encode, FromJSON, ToJSON)
@@ -150,22 +148,32 @@ withFileUploads f =
   do
     (formParams, formFiles) <- handleFormUploads uploadPolicy filePolicy handleRead
     let fileKVPairs         = formFiles <&> formFileValue
-    paramKVPairs            <- liftIO $ traverse processParamPair formParams
+    paramKVPairs            <- liftIO $ traverse (processParamPair &> return) formParams
     (paramKVPairs <> fileKVPairs) |> Map.fromList &> f
   where
     uploadPolicy = setMaximumFormInputSize _20MB defaultUploadPolicy
     filePolicy   = setMaximumFileSize      _20MB defaultFileUploadPolicy
     _20MB        = 20 * 1024 * 1024
 
-    processParamPair (k, v) = processThem (decodeUtf8 k) $ LazyByteString.fromStrict v
+    processParamPair :: (ByteString, ByteString) -> (Text, Text)
+    processParamPair (k, v) = processThem (sbsToLBS k) $ sbsToLBS v
 
-    processThem key        = readPossibleGZip &> (key,) &> (\(k, mv) -> mv <&> (\v -> (k, v)))
-    readPossibleGZip input = catch (input |> decompress &> lbsToText &> return)
-                             (\e -> const (input |> lbsToText &> return) (e :: DecompressError))
+    processThem :: LazyByteString.ByteString -> LazyByteString.ByteString -> (Text, Text)
+    processThem key = readPossibleGZip &> (lbsToText key,)
+
+    readPossibleGZip :: LazyByteString.ByteString -> Text
+    readPossibleGZip input = foldDecompressStreamWithInput
+                               (sbsToLBS &> lbsToText &> (<>))
+                               (lbsToText)
+                               (const $ input |> lbsToText)
+                               (decompressST gzipFormat defaultDecompressParams)
+                               input
 
     handleRead :: PartInfo -> InputStream ByteString -> IO (Text, Text)
-    handleRead partInfo = storeAsLazyByteString &>= (processThem extractedKey)
+    handleRead partInfo = storeAsLazyByteString &>= ((processThem extractedKey) &> return)
       where
-        extractedKey = partInfo |> partFileName &> (fromMaybe "-") &> decodeUtf8
+        extractedKey = partInfo |> partFileName &> (fromMaybe "-") &> sbsToLBS
 
     lbsToText = LazyTextEncoding.decodeUtf8 &> LazyText.toStrict
+
+    sbsToLBS = LazyByteString.fromStrict
