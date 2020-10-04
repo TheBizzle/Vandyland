@@ -15,4 +15,5 @@ tags
 /.projections.json
 /.stack-work/
 /log/
+/stack.yaml.lock
 /target/

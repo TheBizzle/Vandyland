@@ -1,7 +1,5 @@
 module Main(main) where
 
-import Control.Applicative((<|>))
-
 import Snap.Core(dir, route)
 import Snap.Http.Server(quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
