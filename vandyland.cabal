@@ -1,8 +1,6 @@
 Name:                vandyland
 Version:             1.0
 Cabal-version:       >=1.22.0
-License:             PublicDomain
-License-File:        LICENSE.txt
 Category:            Web
 Stability:           Experimental
 Build-type:          Simple
