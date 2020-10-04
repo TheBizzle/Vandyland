@@ -15,7 +15,7 @@ import Snap.Util.GZip(withCompression)
 
 import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
-import Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission)
+import Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, uniqueSessionName, writeComment, writeSubmission)
 
 routes :: [(ByteString, Snap ())]
 routes = [ ("echo/:param"                          ,                   allowingCORS POST handleEchoData)
@@ -25,7 +25,7 @@ routes = [ ("echo/:param"                          ,                   allowingC
          , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
          , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
          , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
-         , ("names/:session-id"                    , withCompression $ allowingCORS GET  handleListSession)
+         , ("listings/:session-id"                 , withCompression $ allowingCORS GET  handleListSession)
          , ("data-lite"                            , withCompression $ allowingCORS POST handleSubmissionsLite)
          ]
 
@@ -38,7 +38,7 @@ handleNewSession :: Snap ()
 handleNewSession = uniqueSessionName |> liftIO &>= writeText
 
 handleListSession :: Snap ()
-handleListSession = handle1 (Arg "session-id" nonEmpty) $ readSubmissionNames &> liftIO &>= (encodeText &> (succeed "application/json"))
+handleListSession = handle1 (Arg "session-id" nonEmpty) $ readSubmissionListings &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =

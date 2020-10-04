@@ -73,9 +73,9 @@ let sync = function() {
 
   };
 
-  fetch(window.thisDomain + "/names/" + getSessionName()).then(x => x.json()).then(
-    function(names) {
-      let newNames = names.filter((name) => !knownNames.has(name));
+  fetch(window.thisDomain + "/listings/" + getSessionName()).then(x => x.json()).then(
+    function(listings) {
+      let newNames = listings.filter((name) => !knownNames.has(name));
       newNames.forEach((name) => knownNames.add(name));
       let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames) });
       return fetch(window.thisDomain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });

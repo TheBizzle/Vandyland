@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionNames, uniqueSessionName, writeComment, writeSubmission) where
+module Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, uniqueSessionName, writeComment, writeSubmission) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
@@ -72,8 +72,8 @@ uniqueSubmissionName sessionName = withDB $
     entryMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower name)] []
     if isJust entryMaybe then liftIO (uniqueSubmissionName sessionName) else return name
 
-readSubmissionNames :: Text -> IO [Text]
-readSubmissionNames sessionName = withDB $
+readSubmissionListings :: Text -> IO [Text]
+readSubmissionListings sessionName = withDB $
     do
       rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
       return $ map (entityVal &> extractUploadName) rows
