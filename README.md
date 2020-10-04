@@ -20,8 +20,6 @@ Vandyland
 
   * For HTTPS support, ensure that your SSL cert is accessible and run this command: `stack build && sudo /PATH/TO/STACK/stack exec --allow-different-user vandyland -- --port=80 --ssl-port=443 --ssl-cert=/PATH/TO/CERT/cert.pem --ssl-key=/PATH/TO/KEY/privkey.pem --ssl-address=0.0.0.0 --no-ssl-chain-cert` (your filenames for the key and cert may differ)
 
-  * If you want the test page to run swimmingly from non-localhost URL, update [the first line of `testpage.js`](https://github.com/TheBizzle/Vandyland/blob/master/html/basic/testpage.js#L1) to reflect the URL of the server, and then hit the `/html/basic` URL with your browser.
-
 ### API Docs
 
 Web API docs can be found [here](https://github.com/TheBizzle/Vandyland/wiki/Web-API).
