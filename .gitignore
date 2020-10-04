@@ -1,8 +1,10 @@
 *.exe
 *.dll
 *.hi
+*.key
 *.log
 *.o
+*.crt
 *.sqlite*
 
 tags
