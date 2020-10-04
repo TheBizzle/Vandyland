@@ -34,13 +34,14 @@ import Vandyland.Common.DBCredentials(password, username)
 
 import Vandyland.Gallery.Comment(Comment(Comment, time))
 import Vandyland.Gallery.NameGen(generateName)
-import Vandyland.Gallery.Submission(Submission(Submission))
+import Vandyland.Gallery.Submission(Submission(Submission), SubmissionListing(SubmissionListing))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 SubmissionDB
     sessionName Text
     uploadName  Text
     base64Image Text
+    authorToken Text Maybe
     metadata    Text Maybe
     extraData   Text
     dateAdded   UTCTime
@@ -90,12 +91,12 @@ readSubmissionsLite sessionName names = withDB $
       subs <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
       return $ map (entityVal &> dbToSubmission) subs
 
-writeSubmission :: Text -> Text -> (Maybe Text) -> Text -> IO Text
-writeSubmission sessionName imageBytes metadata extraData = withDB $
+writeSubmission :: Text -> Text -> (Maybe Text) -> (Maybe Text) -> Text -> IO Text
+writeSubmission sessionName imageBytes token metadata extraData = withDB $
     do
       uploadName <- liftIO $ uniqueSubmissionName sessionName
       timestamp  <- liftIO getCurrentTime
-      let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes metadata extraData timestamp
+      let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes token metadata extraData timestamp
       void $ insert subDB
       return uploadName
 
@@ -125,7 +126,7 @@ withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO 
     connStr = "host=localhost dbname=vandyland user=" <> username <> " password=" <> password <> " port=5432"
 
 dbToSubmission :: SubmissionDB -> Submission
-dbToSubmission (SubmissionDB _ uploadName image metadata _ _) = Submission uploadName image metadata
+dbToSubmission (SubmissionDB _ uploadName image token metadata _ _) = Submission uploadName image (token >>= UUID.fromText) metadata
 
 dbToComment :: CommentDB -> Comment
 dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
@@ -133,5 +134,8 @@ dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comme
 extractUploadName :: SubmissionDB -> Text
 extractUploadName (SubmissionDB _ uploadName _ _ _ _) = uploadName
 
+extractToken :: SubmissionDB -> Maybe UUID
+extractToken (SubmissionDB _ _ _ token _ _ _) = token >>= UUID.fromText
+
 extractData :: SubmissionDB -> Text
-extractData (SubmissionDB _ _ _ _ extraData _) = extraData
+extractData (SubmissionDB _ _ _ _ _ extraData _) = extraData

@@ -9,13 +9,15 @@ import Data.Validation(_Failure, _Success, Validation)
 import qualified Data.Map           as Map
 import qualified Data.Text.Encoding as TextEncoding
 import qualified Data.UUID          as UUID
+import qualified Data.UUID.V4       as UUIDGen
 
 import Snap.Core(getParam, Method(GET, POST), Snap, writeText)
 import Snap.Util.GZip(withCompression)
 
-import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
+import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
 import Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, uniqueSessionName, writeComment, writeSubmission)
+import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(SubmissionSendable))
 
 routes :: [(ByteString, Snap ())]
 routes = [ ("echo/:param"                          ,                   allowingCORS POST handleEchoData)
@@ -27,6 +29,7 @@ routes = [ ("echo/:param"                          ,                   allowingC
          , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
          , ("listings/:session-id"                 , withCompression $ allowingCORS GET  handleListSession)
          , ("data-lite"                            , withCompression $ allowingCORS POST handleSubmissionsLite)
+         , ("uploader-token"                       ,                   allowingCORS GET  handleGetUploaderToken)
          ]
 
 handleEchoData :: Snap ()
@@ -47,12 +50,18 @@ handleDownloadItem =
       dataMaybe <- liftIO $ (uncurry readSubmissionData) ps
       maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) (succeed "text/plain") dataMaybe
 
+handleGetUploaderToken :: Snap ()
+handleGetUploaderToken = (UUIDGen.nextRandom <&> UUID.toText) |> liftIO &>= (succeed "text/plain")
+
 handleSubmissionsLite :: Snap ()
 handleSubmissionsLite =
-  handle2 (Arg "session-id" nonEmpty, Arg "names" free) $ \(sessionID, namesText) ->
+  handle3 (Arg "session-id" nonEmpty, Arg "names" free, Arg "token" free) $ \(sessionID, namesText, token) ->
     do
       let names = decodeText namesText :: Maybe [Text]
-      maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText)) ((readSubmissionsLite sessionID) &> liftIO &>= (encodeText &> (succeed "application/json"))) names
+      maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText))
+            ((readSubmissionsLite sessionID) &> (map $ map $ checkOwnership $ UUID.fromText token) &> liftIO &>= (encodeText &> (succeed "application/json"))) names
+  where
+    checkOwnership _ (Submission name b64 _ meta) = SubmissionSendable name b64 meta
 
 handleUpload :: Snap ()
 handleUpload =
@@ -71,8 +80,11 @@ handleUploadHelper datum image fileMap =
   do
     sessionID <- getParamVM fileMap $ Arg "session-id" nonEmpty
     metadata  <- getParamVM fileMap $ Arg "metadata"   nonEmpty
-    let tupleV = (,,,) <$> sessionID <*> image <*> (map Just metadata <> (_Success # Nothing)) <*> datum
-    bimapM_ notifyBadParams ((uncurry4 writeSubmission) &> liftIO &>= writeText) tupleV
+    token     <- getParamVM fileMap $ Arg "token"      nonEmpty
+    let tupleV = (,,,,) <$> sessionID <*> image <*> (defaultOnV token) <*> (defaultOnV metadata) <*> datum
+    bimapM_ notifyBadParams ((uncurry5 writeSubmission) &> liftIO &>= writeText) tupleV
+  where
+    defaultOnV v = (map Just v) <> (_Success # Nothing)
 
 handleGetComments :: Snap ()
 handleGetComments = handle2 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty) $ (uncurry readCommentsFor) &> liftIO &>= (encodeText &> (succeed "application/json"))

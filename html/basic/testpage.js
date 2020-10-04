@@ -21,7 +21,17 @@ window.startSession = function(sessionName) {
 
   let startup = function(sessionName) {
     setSessionName(sessionName);
-    uploadInterval = setInterval(sync, syncRate);
+    let token = window.localStorage.getItem("token")
+    if (token !== null) {
+      uploadInterval = setInterval(sync, syncRate);
+    } else {
+      fetch(window.thisDomain + "/uploader-token", { method: "GET" }).then((x) => x.text()).then(
+        function (t) {
+          window.localStorage.setItem("token", t);
+          uploadInterval = setInterval(sync, syncRate);
+        }
+      );
+    }
   };
 
   if (sessionName === undefined) {
@@ -74,7 +84,8 @@ let sync = function() {
     function(listings) {
       let newNames = listings.filter((name) => !knownNames.has(name));
       newNames.forEach((name) => knownNames.add(name));
-      let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames) });
+      let token  = window.localStorage.getItem("token") || "";
+      let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames), token });
       return fetch(window.thisDomain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
     }
   ).then(x => x.json()).then(callback);
@@ -101,6 +112,7 @@ window.upload = function(e) {
         let formData = new FormData(document.getElementById("upload-form"));
         formData.set("image"     , imageEvent.result);
         formData.set("session-id", getSessionName());
+        formData.set("token",      window.localStorage.getItem("token") || "");
         return fetch(window.thisDomain + "/file-uploads/", { method: "POST", body: formData });
 
       } else {

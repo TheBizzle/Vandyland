@@ -19,7 +19,17 @@ window.startSession = function(sessionName) {
 
   let startup = function(sessionName) {
     setSessionName(sessionName);
-    uploadInterval = setInterval(sync, syncRate);
+    let token = window.localStorage.getItem("token")
+    if (token !== null) {
+      uploadInterval = setInterval(sync, syncRate);
+    } else {
+      fetch(window.thisDomain + "/uploader-token", { method: "GET" }).then((x) => x.text()).then(
+        function (t) {
+          window.localStorage.setItem("token", t);
+          uploadInterval = setInterval(sync, syncRate);
+        }
+      );
+    }
   };
 
   if (sessionName === undefined) {
@@ -74,7 +84,9 @@ let sync = function() {
     function(listings) {
       let newNames = listings.filter((name) => !knownNames.has(name));
       newNames.forEach((name) => knownNames.add(name));
-      let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames) });
+      let token  = window.localStorage.getItem("token") || "";
+      let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames), token });
+
       return fetch(window.thisDomain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
     }
   ).then(x => x.json()).then(callback);
@@ -101,7 +113,9 @@ window.upload = function({ code, image, summary, uploader }) {
       }
     };
 
-    let params = makeQueryString({ "session-id": getSessionName(), image, "data": code, "metadata": JSON.stringify({ summary, uploader }) });
+    let token    = window.localStorage.getItem("token") || "";
+    let metadata = JSON.stringify({ summary, uploader });
+    let params   = makeQueryString({ "session-id": getSessionName(), image, "data": code, token, metadata });
     fetch(window.thisDomain + "/uploads/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(callback, failback);
 
     lastUploadTime = new Date().getTime();
