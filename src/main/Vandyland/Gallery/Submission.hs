@@ -24,6 +24,7 @@ data SubmissionSendable
   = SubmissionSendable {
       uploadName   :: Text
     , base64Image  :: Text
+    , isOwner      :: Bool
     , metadata     :: Maybe Text
     } deriving (Generic, Show)
 

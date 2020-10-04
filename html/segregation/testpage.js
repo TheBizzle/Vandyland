@@ -73,6 +73,19 @@ let sync = function() {
         container.classList.add("upload-container");
         container.dataset.uploadName = entry.uploadName;
 
+        if (entry.isOwner) {
+          let template = document.getElementById("deleter-template");
+          let deleter  = document.importNode(template.content, true).querySelector(".deleter");
+          deleter.onclick = function() {
+            if (window.confirm("Are you sure you want to delete this submission?  No one will be able to see it if you click \"OK\".")) {
+              container.remove();
+              let token  = window.localStorage.getItem("token") || "";
+              fetch(window.thisDomain + "/uploads/"  + getSessionName() + "/" + entry.uploadName + "/" + token, { method: "DELETE" });
+            }
+          };
+          container.appendChild(deleter);
+        }
+
         return container;
 
       });

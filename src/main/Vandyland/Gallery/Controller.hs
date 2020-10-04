@@ -72,7 +72,9 @@ handleSubmissionsLite =
       maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText))
             ((readSubmissionsLite sessionID) &> (map $ map $ checkOwnership $ UUID.fromText token) &> liftIO &>= (encodeText &> (succeed "application/json"))) names
   where
-    checkOwnership _ (Submission name b64 _ meta) = SubmissionSendable name b64 meta
+    validates (Just a) (Just b) = a == b
+    validates _        _        = False
+    checkOwnership token (Submission name b64 stoken meta) = SubmissionSendable name b64 (stoken `validates` token) meta
 
 handleUpload :: Snap ()
 handleUpload =

@@ -53,6 +53,7 @@
   padding:        8px;
   height:         250px;
   width:          250px;
+  position:       relative;
 }
 
 .upload-form-fields {
@@ -72,4 +73,64 @@
   overflow-x:    hidden;
   text-overflow: ellipsis;
   white-space:   nowrap;
+}
+
+.upload-container .deleter {
+
+  visibility: hidden;
+
+  position: absolute;
+  top:      15px;
+  right:    15px;
+
+  height:   30px;
+  width:    30px;
+
+}
+
+.upload-container:hover .deleter {
+  visibility: visible;
+}
+
+.deleter-main {
+
+  background-color: red;
+  border:           2px inset black;
+  border-radius:    20px;
+
+  position: relative;
+
+  height: 100%;
+  width:  100%;
+
+}
+
+.deleter:active .deleter-main {
+  background-color: #f66;
+}
+
+.deleter-x-part {
+
+  background-color: white;
+  border-radius:    6px;
+
+  height:  5px;
+  width:  24px;
+
+  position: absolute;
+  top:      12px;
+  left:      3px;
+
+}
+
+.deleter:active .deleter-x-part {
+  background-color: #eee;
+}
+
+.deleter-x-1 {
+  transform: rotate(45deg);
+}
+
+.deleter-x-2 {
+  transform: rotate(-45deg);
 }
