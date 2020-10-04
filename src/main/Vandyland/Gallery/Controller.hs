@@ -11,25 +11,26 @@ import qualified Data.Text.Encoding as TextEncoding
 import qualified Data.UUID          as UUID
 import qualified Data.UUID.V4       as UUIDGen
 
-import Snap.Core(getParam, Method(GET, POST), Snap, writeText)
+import Snap.Core(getParam, Method(DELETE, GET, POST), Snap, writeText)
 import Snap.Util.GZip(withCompression)
 
 import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
-import Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, uniqueSessionName, writeComment, writeSubmission)
+import Vandyland.Gallery.Database(SuppressionResult(Suppressed, NotAuthorized, NotFound), readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, suppressSubmission, uniqueSessionName, writeComment, writeSubmission)
 import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(SubmissionSendable))
 
 routes :: [(ByteString, Snap ())]
-routes = [ ("echo/:param"                          ,                   allowingCORS POST handleEchoData)
-         , ("new-session"                          ,                   allowingCORS POST handleNewSession)
-         , ("uploads"                              ,                   allowingCORS POST handleUpload)
-         , ("file-uploads"                         ,                   allowingCORS POST handleUploadFile)
-         , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET  handleDownloadItem)
-         , ("comments"                             ,                   allowingCORS POST handleSubmitComment)
-         , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET  handleGetComments)
-         , ("listings/:session-id"                 , withCompression $ allowingCORS GET  handleListSession)
-         , ("data-lite"                            , withCompression $ allowingCORS POST handleSubmissionsLite)
-         , ("uploader-token"                       ,                   allowingCORS GET  handleGetUploaderToken)
+routes = [ ("echo/:param"                          ,                   allowingCORS POST   handleEchoData)
+         , ("new-session"                          ,                   allowingCORS POST   handleNewSession)
+         , ("uploads"                              ,                   allowingCORS POST   handleUpload)
+         , ("file-uploads"                         ,                   allowingCORS POST   handleUploadFile)
+         , ("uploads/:session-id/:item-id"         , withCompression $ allowingCORS GET    handleDownloadItem)
+         , ("uploads/:session-id/:item-id/:token"  , withCompression $ allowingCORS DELETE handleSuppressItem)
+         , ("comments"                             ,                   allowingCORS POST   handleSubmitComment)
+         , ("comments/:session-id/:item-id"        , withCompression $ allowingCORS GET    handleGetComments)
+         , ("listings/:session-id"                 , withCompression $ allowingCORS GET    handleListSession)
+         , ("data-lite"                            , withCompression $ allowingCORS POST   handleSubmissionsLite)
+         , ("uploader-token"                       ,                   allowingCORS GET    handleGetUploaderToken)
          ]
 
 handleEchoData :: Snap ()
@@ -49,6 +50,16 @@ handleDownloadItem =
     do
       dataMaybe <- liftIO $ (uncurry readSubmissionData) ps
       maybe (failWith 404 (writeText $ "Could not find entry for " <> (asText $ show ps))) (succeed "text/plain") dataMaybe
+
+handleSuppressItem :: Snap ()
+handleSuppressItem =
+  handle3 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty, Arg "token" nonEmpty) $ \(sid, iid, token) ->
+    do
+      result <- liftIO $ (suppressSubmission sid iid $ UUID.fromText token)
+      case result of
+        Suppressed    ->                writeText "Submission successfully suppressed"
+        NotAuthorized -> failWith 401 $ writeText "You are not authorized to modify that submission"
+        NotFound      -> failWith 404 $ writeText "Could not find a matching submission to suppress"
 
 handleGetUploaderToken :: Snap ()
 handleGetUploaderToken = (UUIDGen.nextRandom <&> UUID.toText) |> liftIO &>= (succeed "text/plain")

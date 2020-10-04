@@ -1,10 +1,16 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Vandyland.Gallery.Submission(Submission(..), SubmissionSendable(..)) where
+module Vandyland.Gallery.Submission(Submission(..), SubmissionListing(..), SubmissionSendable(..)) where
 
 import Data.Aeson(ToJSON)
 import Data.UUID(UUID)
 
 import GHC.Generics(Generic)
+
+data SubmissionListing
+  = SubmissionListing {
+      subName      :: Text
+    , isSuppressed :: Bool
+    } deriving (Generic, Show)
 
 data Submission
   = Submission {
@@ -21,4 +27,5 @@ data SubmissionSendable
     , metadata     :: Maybe Text
     } deriving (Generic, Show)
 
+instance ToJSON SubmissionListing
 instance ToJSON SubmissionSendable

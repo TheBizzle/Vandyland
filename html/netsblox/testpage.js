@@ -67,6 +67,7 @@ let sync = function() {
         let container = document.createElement("div")
         container.appendChild(img);
         container.classList.add("upload-container");
+        container.dataset.uploadName = entry.uploadName;
 
         if (metadata.featured) {
           img      .classList.add("featured");
@@ -85,12 +86,24 @@ let sync = function() {
 
   fetch(window.thisDomain + "/listings/" + getSessionName()).then(x => x.json()).then(
     function(listings) {
-      let newNames = listings.filter((name) => !knownNames.has(name));
+
+      let newNames = listings.filter((l) => !knownNames.has(l.subName) && !l.isSuppressed).map((l) => l.subName);
       newNames.forEach((name) => knownNames.add(name));
+
+      let supNames = listings.filter((l) => l.isSuppressed).map((l) => l.subName);
+      supNames.forEach((name) => {
+        knownNames.delete(name)
+        let elem = document.querySelector(`.upload-container[data-uploadName="${name}"]`);
+        if (elem !== null) {
+          elem.remove();
+        }
+      });
+
       let token  = window.localStorage.getItem("token") || "";
       let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames), token });
 
       return fetch(window.thisDomain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+
     }
   ).then(x => x.json()).then(callback);
 

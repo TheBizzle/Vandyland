@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Vandyland.Gallery.Database(readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, uniqueSessionName, writeComment, writeSubmission) where
+module Vandyland.Gallery.Database(SuppressionResult(Suppressed, NotAuthorized, NotFound), readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
@@ -24,7 +24,7 @@ import Data.UUID(UUID)
 import qualified Data.Text as Text
 import qualified Data.UUID as UUID
 
-import Database.Persist((<-.), (==.), Entity(entityVal), insert, selectFirst, selectList, SelectOpt(Asc))
+import Database.Persist((<-.), (=.), (==.), Entity(entityKey, entityVal), insert, selectFirst, selectList, SelectOpt(Asc), update)
 import Database.Persist.Postgresql(runMigration, runSqlPersistMPool, SqlBackend, withPostgresqlPool)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 
@@ -38,13 +38,14 @@ import Vandyland.Gallery.Submission(Submission(Submission), SubmissionListing(Su
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 SubmissionDB
-    sessionName Text
-    uploadName  Text
-    base64Image Text
-    authorToken Text Maybe
-    metadata    Text Maybe
-    extraData   Text
-    dateAdded   UTCTime
+    sessionName  Text
+    uploadName   Text
+    base64Image  Text
+    authorToken  Text Maybe
+    isSuppressed Bool
+    metadata     Text Maybe
+    extraData    Text
+    dateAdded    UTCTime
     Primary sessionName uploadName
     deriving Show
 CommentDB
@@ -73,11 +74,11 @@ uniqueSubmissionName sessionName = withDB $
     entryMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower name)] []
     if isJust entryMaybe then liftIO (uniqueSubmissionName sessionName) else return name
 
-readSubmissionListings :: Text -> IO [Text]
+readSubmissionListings :: Text -> IO [SubmissionListing]
 readSubmissionListings sessionName = withDB $
     do
       rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
-      return $ map (entityVal &> extractUploadName) rows
+      return $ map (entityVal &> dbToSubListing) rows
 
 readSubmissionData :: Text -> Text -> IO (Maybe Text)
 readSubmissionData sessionName uploadName = withDB $
@@ -91,12 +92,24 @@ readSubmissionsLite sessionName names = withDB $
       subs <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
       return $ map (entityVal &> dbToSubmission) subs
 
+suppressSubmission :: Text -> Text -> (Maybe UUID) -> IO SuppressionResult
+suppressSubmission _           _          Nothing   = return NotAuthorized
+suppressSubmission sessionName uploadName tokenJust = withDB $
+  do
+    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
+    maybe (return NotFound) (\s -> if tokenJust == (extractToken $ entityVal s) then liftIO (suppressIt $ entityKey s) else return NotAuthorized) sub
+  where
+    suppressIt subKey = withDB $
+      do
+        void $ update subKey [SubmissionDBIsSuppressed =. True]
+        return Suppressed
+
 writeSubmission :: Text -> Text -> (Maybe Text) -> (Maybe Text) -> Text -> IO Text
 writeSubmission sessionName imageBytes token metadata extraData = withDB $
     do
       uploadName <- liftIO $ uniqueSubmissionName sessionName
       timestamp  <- liftIO getCurrentTime
-      let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes token metadata extraData timestamp
+      let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes token False metadata extraData timestamp
       void $ insert subDB
       return uploadName
 
@@ -125,17 +138,22 @@ withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO 
   where
     connStr = "host=localhost dbname=vandyland user=" <> username <> " password=" <> password <> " port=5432"
 
+dbToSubListing :: SubmissionDB -> SubmissionListing
+dbToSubListing (SubmissionDB _ uploadName _ _ isSuppressed _ _ _) = SubmissionListing uploadName isSuppressed
+
 dbToSubmission :: SubmissionDB -> Submission
-dbToSubmission (SubmissionDB _ uploadName image token metadata _ _) = Submission uploadName image (token >>= UUID.fromText) metadata
+dbToSubmission (SubmissionDB _ uploadName image token _ metadata _ _) = Submission uploadName image (token >>= UUID.fromText) metadata
 
 dbToComment :: CommentDB -> Comment
 dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
 
-extractUploadName :: SubmissionDB -> Text
-extractUploadName (SubmissionDB _ uploadName _ _ _ _) = uploadName
-
 extractToken :: SubmissionDB -> Maybe UUID
-extractToken (SubmissionDB _ _ _ token _ _ _) = token >>= UUID.fromText
+extractToken (SubmissionDB _ _ _ token _ _ _ _) = token >>= UUID.fromText
 
 extractData :: SubmissionDB -> Text
-extractData (SubmissionDB _ _ _ _ _ extraData _) = extraData
+extractData (SubmissionDB _ _ _ _ _ _ extraData _) = extraData
+
+data SuppressionResult
+  = Suppressed
+  | NotAuthorized
+  | NotFound
