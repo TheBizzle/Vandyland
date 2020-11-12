@@ -123,6 +123,10 @@
 
 }
 
+.deleter:hover .deleter-x-part {
+  background-color: #bbb;
+}
+
 .deleter:active .deleter-x-part {
   background-color: #eee;
 }
