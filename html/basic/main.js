@@ -12,6 +12,14 @@ let getSessionName = function() {
   return document.getElementById('session-name').innerText;
 };
 
+let getStudentToken = function() {
+  return window.localStorage.getItem("student-token");
+}
+
+let getToken = function() {
+  return window.localStorage.getItem("mod-token") || getStudentToken();
+}
+
 window.onEnter = function(f) { return function(e) { if (e.keyCode === 13) { return f(e); } }; };
 
 window.startSession = function(sessionName) {
@@ -21,13 +29,13 @@ window.startSession = function(sessionName) {
 
   let startup = function(sessionName) {
     setSessionName(sessionName);
-    let token = window.localStorage.getItem("token")
+    let token = getToken()
     if (token !== null) {
       uploadInterval = setInterval(sync, syncRate);
     } else {
       fetch(window.thisDomain + "/uploader-token", { method: "GET" }).then((x) => x.text()).then(
         function (t) {
-          window.localStorage.setItem("token", t);
+          window.localStorage.setItem("student-token", t);
           uploadInterval = setInterval(sync, syncRate);
         }
       );
@@ -73,14 +81,14 @@ let sync = function() {
         container.classList.add("upload-container");
         container.dataset.uploadName = entry.uploadName;
 
-        if (entry.isOwner) {
+        if (entry.isOwner || entry.canModerate) {
           let template = document.getElementById("deleter-template");
           let deleter  = document.importNode(template.content, true).querySelector(".deleter");
           deleter.onclick = function() {
             if (window.confirm("Are you sure you want to delete this submission?  No one will be able to see it if you click \"OK\".")) {
               container.remove();
-              let token  = window.localStorage.getItem("token") || "";
-              fetch(window.thisDomain + "/uploads/"  + getSessionName() + "/" + entry.uploadName + "/" + token, { method: "DELETE" });
+              let token = getToken() || "";
+              fetch(window.thisDomain + `/uploads/${getSessionName()}/${entry.uploadName}/${token}`, { method: "DELETE" });
             }
           };
           container.appendChild(deleter);
@@ -109,10 +117,10 @@ let sync = function() {
         }
       });
 
-      let token  = window.localStorage.getItem("token") || "";
-      let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames), token });
+      let token  = getToken() || "";
+      let params = makeQueryString({ "session-id": getSessionName(), "names": JSON.stringify(newNames) });
 
-      return fetch(window.thisDomain + "/data-lite/", { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+      return fetch(window.thisDomain + `/data-lite/${token}`, { method: "POST", body: params, headers: { "Content-Type": "application/x-www-form-urlencoded" } });
 
     }
   ).then(x => x.json()).then(callback);
@@ -139,7 +147,7 @@ window.upload = function(e) {
         let formData = new FormData(document.getElementById("upload-form"));
         formData.set("image"     , imageEvent.result);
         formData.set("session-id", getSessionName());
-        formData.set("token",      window.localStorage.getItem("token") || "");
+        formData.set("token",      getStudentToken() || "");
         return fetch(window.thisDomain + "/file-uploads/", { method: "POST", body: formData });
 
       } else {

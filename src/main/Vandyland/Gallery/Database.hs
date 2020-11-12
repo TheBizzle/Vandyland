@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Vandyland.Gallery.Database(SuppressionResult(Suppressed, NotAuthorized, NotFound), readCommentsFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
+module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
@@ -25,7 +25,7 @@ import Data.UUID(UUID)
 import qualified Data.Text as Text
 import qualified Data.UUID as UUID
 
-import Database.Persist((<-.), (=.), (==.), Entity(entityKey, entityVal), insert, selectFirst, selectList, SelectOpt(Asc), update)
+import Database.Persist((<-.), (=.), (==.), count, Entity(entityKey, entityVal), insert, selectFirst, selectList, SelectOpt(Asc), update)
 import Database.Persist.Postgresql(runMigration, runSqlPersistMPool, SqlBackend, withPostgresqlPool)
 import Database.Persist.TH(mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 
@@ -35,18 +35,27 @@ import Vandyland.Common.DBCredentials(password, username)
 
 import Vandyland.Gallery.Comment(Comment(Comment, time))
 import Vandyland.Gallery.NameGen(generateName)
-import Vandyland.Gallery.Submission(Submission(Submission), SubmissionListing(SubmissionListing))
+import Vandyland.Gallery.Submission(GalleryListing(GalleryListing, numWaiting), Submission(Submission), SubmissionListing(SubmissionListing))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
+GalleryDB
+    galleryName     Text
+    ownerToken      Text Maybe
+    getsPrescreened Bool
+    dateAdded       UTCTime
+    Primary galleryName
+    deriving Show
 SubmissionDB
-    sessionName  Text
-    uploadName   Text
-    base64Image  Text
-    authorToken  Text Maybe
-    isSuppressed Bool
-    metadata     Text Maybe
-    extraData    Text
-    dateAdded    UTCTime
+    sessionName          Text
+    uploadName           Text
+    base64Image          Text
+    authorToken          Text Maybe
+    isSuppressed         Bool
+    isForbidden          Bool
+    isAwaitingModeration Bool
+    metadata             Text Maybe
+    extraData            Text
+    dateAdded            UTCTime
     Primary sessionName uploadName
     deriving Show
 CommentDB
@@ -66,51 +75,134 @@ uniqueSessionName = withDB $
   do
     name       <- liftIO generateName
     entryMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower name)] []
-    if isJust entryMaybe then liftIO uniqueSessionName else return name
+    case entryMaybe of
+      Nothing  -> return name
+      (Just _) -> liftIO uniqueSessionName
 
 uniqueSubmissionName :: Text -> IO Text
 uniqueSubmissionName sessionName = withDB $
   do
     name       <- liftIO generateName
     entryMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower name)] []
-    if isJust entryMaybe then liftIO (uniqueSubmissionName sessionName) else return name
+    case entryMaybe of
+      Nothing  -> return name
+      (Just _) -> liftIO $ uniqueSubmissionName sessionName
+
+registerNewSession :: Text -> Bool -> Maybe UUID -> IO Bool
+registerNewSession name getsPrescreened tokenMaybe = withDB $
+  do
+    entityMaybe <- selectFirst [GalleryDBGalleryName ==. name] []
+    rows        <- selectList  [SubmissionDBSessionName ==. (Text.toLower name)] []
+    if isJust entityMaybe || (not . null) rows then
+      return False
+    else
+      insertIt >> (return True)
+  where
+    insertIt =
+      do
+        timestamp <- liftIO getCurrentTime
+        let tokey  = map UUID.toText tokenMaybe
+        insert $ GalleryDB (Text.toLower name) tokey getsPrescreened timestamp
+
+readGalleryListings :: UUID -> IO [GalleryListing]
+readGalleryListings token = withDB $
+    do
+      rows        <- selectList [GalleryDBOwnerToken ==. (Just $ UUID.toText token)] [Asc GalleryDBDateAdded]
+      let listings = map (entityVal &> dbToGalListing) rows
+      flip mapM listings $ \listing@(GalleryListing name _ _) -> liftIO $ withDB $ do
+        num <- count [SubmissionDBSessionName ==. (Text.toLower name), SubmissionDBIsAwaitingModeration ==. True]
+        return $ listing { numWaiting = num }
 
 readSubmissionListings :: Text -> IO [SubmissionListing]
 readSubmissionListings sessionName = withDB $
     do
-      rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName)] [Asc SubmissionDBDateAdded]
+      rows <- selectList [ SubmissionDBSessionName          ==. (Text.toLower sessionName)
+                         , SubmissionDBIsAwaitingModeration ==. False
+                         , SubmissionDBIsForbidden          ==. False
+                         ] [Asc SubmissionDBDateAdded]
       return $ map (entityVal &> dbToSubListing) rows
 
-readSubmissionData :: Text -> Text -> IO (Maybe Text)
-readSubmissionData sessionName uploadName = withDB $
+readSubmissionListingsForModeration :: Text -> UUID -> IO (PrivilegedActionResult [Text])
+readSubmissionListingsForModeration sessionName token = withDB $
     do
-      sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
-      return $ map (entityVal &> extractData) sub
+      entityMaybe <- selectFirst [GalleryDBGalleryName ==. (Text.toLower sessionName)] []
+      case entityMaybe of
+        Nothing       -> return NotFound
+        (Just entity) -> liftIO $ withDB $ do
+          if (Just token) == (entity |> entityVal &> extractOwnerToken) then do
+            rows <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBIsAwaitingModeration ==. True] [Asc SubmissionDBDateAdded]
+            return $ Fulfilled $ map (entityVal &> extractUploadName) rows
+          else
+            return NotAuthorized
 
-readSubmissionsLite :: Text -> [Text] -> IO [Submission]
-readSubmissionsLite sessionName names = withDB $
+readSubmissionData :: Text -> Text -> Maybe UUID -> IO (PrivilegedActionResult Text)
+readSubmissionData sessionName uploadName tokenMaybe = withDB $
     do
-      subs <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
-      return $ map (entityVal &> dbToSubmission) subs
+      sEntityMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
+      gEntityMaybe <- selectFirst [GalleryDBGalleryName ==. (Text.toLower sessionName)] []
+      let teacherTokenMaybe = (gEntityMaybe >>= (entityVal &> extractOwnerToken))
+      maybe (return NotFound) (entityVal &> retrieveSubmission extractData tokenMaybe teacherTokenMaybe &> liftIO) sEntityMaybe
 
-suppressSubmission :: Text -> Text -> (Maybe UUID) -> IO SuppressionResult
-suppressSubmission _           _          Nothing   = return NotAuthorized
-suppressSubmission sessionName uploadName tokenJust = withDB $
-  do
-    sub <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
-    maybe (return NotFound) (\s -> if tokenJust == (extractToken $ entityVal s) then liftIO (suppressIt $ entityKey s) else return NotAuthorized) sub
+readSubmissionsLite :: Text -> Maybe UUID -> [Text] -> IO [Submission]
+readSubmissionsLite sessionName tokenMaybe names = withDB $
+    do
+      entities  <- selectList [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName <-. (map Text.toLower names)] [Asc SubmissionDBDateAdded]
+      let subs   = map entityVal entities
+      validSubs <- flip mapM subs $ \sub -> liftIO $ withDB $ do
+        gEntityMaybe         <- selectFirst [GalleryDBGalleryName ==. (extractSessionName sub)] []
+        let teacherTokenMaybe = gEntityMaybe >>= (entityVal &> extractOwnerToken)
+        liftIO $ retrieveSubmission (dbToSubmission teacherTokenMaybe) tokenMaybe teacherTokenMaybe sub
+      return $ validSubs >>= collectFulfilled
   where
-    suppressIt subKey = withDB $
-      do
-        void $ update subKey [SubmissionDBIsSuppressed =. True]
-        return Suppressed
+    collectFulfilled (Fulfilled x) = [x]
+    collectFulfilled _             = []
 
-writeSubmission :: Text -> Text -> (Maybe Text) -> (Maybe Text) -> Text -> IO Text
-writeSubmission sessionName imageBytes token metadata extraData = withDB $
+suppressSubmission :: Text -> Text -> UUID -> IO (PrivilegedActionResult ())
+suppressSubmission sessionName uploadName token = withDB $
+  do
+    entityMaybe  <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
+    galleryMaybe <- selectFirst [GalleryDBGalleryName ==. (Text.toLower sessionName)] []
+    case entityMaybe of
+      Nothing       -> return NotFound
+      (Just entity) -> do
+        let isUploader  = (Just token) == (entity |> entityVal &> extractToken)
+        let isModerator = (Just token) == (galleryMaybe >>= (entityVal &> extractOwnerToken))
+        if isUploader || isModerator then do
+          void $ update (entityKey entity) [SubmissionDBIsSuppressed =. True]
+          return $ Fulfilled ()
+        else
+          return NotAuthorized
+
+forbidSubmission :: Text -> Text -> UUID -> IO (PrivilegedActionResult ())
+forbidSubmission = moderateSubmission True
+
+approveSubmission :: Text -> Text -> UUID -> IO (PrivilegedActionResult ())
+approveSubmission = moderateSubmission False
+
+moderateSubmission :: Bool -> Text -> Text -> UUID -> IO (PrivilegedActionResult ())
+moderateSubmission isForbidden sessionName uploadName token = withDB $
+  do
+    entityMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName), SubmissionDBUploadName ==. (Text.toLower uploadName)] []
+    case entityMaybe of
+      Nothing       -> return NotFound
+      (Just entity) -> do
+        gEntityMaybe <- selectFirst [GalleryDBGalleryName ==. (Text.toLower sessionName)] []
+        if (Just token) == (gEntityMaybe >>= (entityVal &> extractOwnerToken)) then do
+          void $ update (entityKey entity) [SubmissionDBIsForbidden          =. isForbidden]
+          void $ update (entityKey entity) [SubmissionDBIsAwaitingModeration =. False]
+          return $ Fulfilled ()
+        else
+          return NotAuthorized
+
+writeSubmission :: Text -> Text -> Maybe UUID -> Maybe Text -> Text -> IO Text
+writeSubmission sessionName imageBytes tokenMaybe metadata extraData = withDB $
     do
-      uploadName <- liftIO $ uniqueSubmissionName sessionName
-      timestamp  <- liftIO getCurrentTime
-      let subDB = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes token False metadata extraData timestamp
+      uploadName   <- liftIO $ uniqueSubmissionName sessionName
+      timestamp    <- liftIO getCurrentTime
+      gEntityMaybe <- selectFirst [GalleryDBGalleryName ==. (Text.toLower sessionName)] []
+      let tokey     = map UUID.toText tokenMaybe
+      let getsPreed = maybe False (entityVal &> extractGetsPrescreened) gEntityMaybe
+      let subDB     = SubmissionDB (Text.toLower sessionName) (Text.toLower uploadName) imageBytes tokey False False getsPreed metadata extraData timestamp
       void $ insert subDB
       return uploadName
 
@@ -139,22 +231,56 @@ withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO 
   where
     connStr = "host=localhost dbname=vandyland user=" <> username <> " password=" <> password <> " port=5432"
 
-dbToSubListing :: SubmissionDB -> SubmissionListing
-dbToSubListing (SubmissionDB _ uploadName _ _ isSuppressed _ _ _) = SubmissionListing uploadName isSuppressed
+retrieveSubmission :: (SubmissionDB -> a) -> Maybe UUID -> Maybe UUID -> SubmissionDB -> IO (PrivilegedActionResult a)
+retrieveSubmission f givenTokenMaybe teacherTokenMaybe submission = withDB $
+    do
+      let authorTokenMaybe = extractToken           submission
+      let needsModeration  = extractNeedsModeration submission
+      let isSuppressed     = extractIsSuppressed    submission
+      return $
+        if givenTokenMaybe == authorTokenMaybe || givenTokenMaybe == teacherTokenMaybe || ((not needsModeration) && (not isSuppressed)) then
+          Fulfilled $ f submission
+        else
+          NotAuthorized
 
-dbToSubmission :: SubmissionDB -> Submission
-dbToSubmission (SubmissionDB _ uploadName image token _ metadata _ _) = Submission uploadName image (token >>= UUID.fromText) metadata
+extractOwnerToken :: GalleryDB -> Maybe UUID
+extractOwnerToken (GalleryDB _ otm _ _) = otm >>= UUID.fromText
+
+extractGetsPrescreened :: GalleryDB -> Bool
+extractGetsPrescreened (GalleryDB _ _ gp _) = gp
+
+dbToGalListing :: GalleryDB -> GalleryListing
+dbToGalListing (GalleryDB gn _ gp _) = GalleryListing gn gp 0
+
+dbToSubListing :: SubmissionDB -> SubmissionListing
+dbToSubListing (SubmissionDB _ uploadName _ _ isSuppressed _ _ _ _ _) = SubmissionListing uploadName isSuppressed
+
+dbToSubmission :: Maybe UUID -> SubmissionDB -> Submission
+dbToSubmission ownerToken (SubmissionDB _ uploadName image token _ _ _ metadata _ _) =
+  Submission uploadName image (token >>= UUID.fromText) ownerToken metadata
 
 dbToComment :: CommentDB -> Comment
 dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
 
+extractSessionName :: SubmissionDB -> Text
+extractSessionName (SubmissionDB sn _ _ _ _ _ _ _ _ _) = sn
+
+extractUploadName :: SubmissionDB -> Text
+extractUploadName (SubmissionDB _ un _ _ _ _ _ _ _ _) = un
+
 extractToken :: SubmissionDB -> Maybe UUID
-extractToken (SubmissionDB _ _ _ token _ _ _ _) = token >>= UUID.fromText
+extractToken (SubmissionDB _ _ _ token _ _ _ _ _ _) = token >>= UUID.fromText
+
+extractIsSuppressed :: SubmissionDB -> Bool
+extractIsSuppressed (SubmissionDB _ _ _ _ isSuppressed _ _ _ _ _) = isSuppressed
+
+extractNeedsModeration :: SubmissionDB -> Bool
+extractNeedsModeration (SubmissionDB _ _ _ _ _ _ needsModeration _ _ _) = needsModeration
 
 extractData :: SubmissionDB -> Text
-extractData (SubmissionDB _ _ _ _ _ _ extraData _) = extraData
+extractData (SubmissionDB _ _ _ _ _ _ _ _ extraData _) = extraData
 
-data SuppressionResult
-  = Suppressed
+data PrivilegedActionResult a
+  = Fulfilled a
   | NotAuthorized
   | NotFound
