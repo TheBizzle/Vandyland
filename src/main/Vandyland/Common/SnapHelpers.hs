@@ -116,9 +116,11 @@ failWith x snap =
     snap
   where
     statusName 400 = "Bad Request"
+    statusName 401 = "Unauthorized"
     statusName 404 = "Not Found"
+    statusName 409 = "Conflict"
     statusName 422 = "Unprocessable Entity"
-    statusName _   = error "Unhandled status"
+    statusName y   = error $ traceShowId $ "Unhandled status: " <> (showText y)
 
 succeed :: ByteString -> Text -> Snap ()
 succeed contentType output =
