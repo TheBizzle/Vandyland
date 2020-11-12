@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
+module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
 
 import Codec.Compression.Zlib.Internal(decompressST, defaultDecompressParams, foldDecompressStreamWithInput, gzipFormat)
 
@@ -23,6 +23,7 @@ import Text.Read(readMaybe)
 
 import qualified Data.ByteString.Lazy    as LazyByteString
 import qualified Data.Map                as Map
+import qualified Data.Text               as Text
 import qualified Data.Text.Lazy          as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyTextEncoding
 import qualified Data.UUID               as UUID
@@ -125,23 +126,34 @@ succeed contentType output =
     modifyResponse $ setContentType contentType
     writeText output
 
-asInt :: Constraint Int
-asInt = Constraint $ \paramName x -> (readMaybe (asString x) :: Maybe Int) |> (maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #))
-
 asNonNegInt :: Constraint Int
-asNonNegInt = Constraint $ \paramName x -> (readMaybe (asString x) :: Maybe Int) |>
-  (>>= (\n -> if n < 0 then Nothing else Just n)) &> maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #)
+asNonNegInt = Constraint $ buildConstraint $ \x -> (readMaybe (asString x) :: Maybe Int) |>
+  (>>= (\n -> if n < 0 then Nothing else Just n))
+
+asInt :: Constraint Int
+asInt = Constraint $ buildConstraint (asString &> readMaybe :: Text -> Maybe Int)
+
+asBool :: Constraint Bool
+asBool = Constraint $ buildConstraint $ Text.toLower &> decoder
+  where
+    decoder "true"  = Just True
+    decoder "false" = Just False
+    decoder _       = Nothing
 
 asUUID :: Constraint UUID
-asUUID = Constraint $ \paramName x -> (UUID.fromText x) |> maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #)
+asUUID = Constraint $ buildConstraint UUID.fromText
 
 free :: Constraint Text
-free = Constraint $ \_ x -> _Success # x
+free = Constraint $ const (_Success #)
 
 nonEmpty :: Constraint Text
 nonEmpty = Constraint $ (\paramName x -> case x of
                                               "" -> _Failure # [(decodeUtf8 paramName) <> " cannot be empty"]
                                               y  -> _Success # y)
+
+buildConstraint :: (Text -> Maybe a) -> ByteString -> Text -> Validation [Text] a
+buildConstraint f paramName x =
+  maybe (_Failure # [(decodeUtf8 paramName)]) (_Success #) (f x)
 
 withFileUploads :: (Map Text Text -> Snap ()) -> Snap ()
 withFileUploads f =
