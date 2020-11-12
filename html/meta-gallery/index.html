@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <link href="main.css" rel="stylesheet">
+    <script src="/html/common/globals.js"></script>
+    <script src="main.js"></script>
+  </head>
+
+  <body>
+
+    <div id="form-container">
+
+      <form id="view-form">
+        <fieldset>
+          <legend>Your Galleries</legend>
+          <select id="gallery-list" class="gallery-list" name="gallery" multiple required></select><br>
+          <input id="submit-student"   type="submit" value="View as Student"   disabled>
+          <input id="submit-moderator" type="submit" value="View as Moderator" disabled>
+        </fieldset>
+      </form>
+
+      <form id="init-form">
+        <fieldset>
+          <legend>Create a New Gallery</legend>
+          <input id="sesh-name-input" type="text" name="name" placeholder="Gallery Name" required><br>
+          <label for="norm-screen-radio">
+            Standard
+            <input type="radio" id="norm-screen-radio" name="galleryType" value="normal" checked>
+          </label>
+          <label>
+            Pre-Screened
+            <input type="radio" id="prescreen-radio" name="galleryType" value="prescreen">
+          </label><br>
+          <input id="submit-init" type="submit" value="Create">
+        </fieldset>
+      </form>
+
+    </div>
+
+  </body>
+
+  <script src="startup.js"></script>
+
+</html>

@@ -1,0 +1,32 @@
+#form-container {
+  display:        flex;
+  flex-direction: row;
+}
+
+#gallery-list {
+  height: 200px;
+  margin: 4px 0 10px 0;
+  width:  300px;
+}
+
+#init-form {
+  max-width: fit-content;
+}
+
+#norm-screen-radio {
+  margin-right: 20px;
+}
+
+#sesh-name-input {
+  margin: 4px 0 8px 0;
+  width:  217px;
+}
+
+#submit-init {
+  margin-top: 12px;
+  width:      100%;
+}
+
+#view-form {
+  max-width: fit-content;
+}
