@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric  #-}
 module Vandyland.Gallery.Submission(Submission(..), SubmissionListing(..), SubmissionSendable(..)) where
 
 import Data.Aeson(ToJSON)
@@ -10,7 +11,7 @@ data SubmissionListing
   = SubmissionListing {
       subName      :: Text
     , isSuppressed :: Bool
-    } deriving (Generic, Show)
+    } deriving (Generic, Show, ToJSON)
 
 data Submission
   = Submission {
@@ -26,7 +27,4 @@ data SubmissionSendable
     , base64Image  :: Text
     , isOwner      :: Bool
     , metadata     :: Maybe Text
-    } deriving (Generic, Show)
-
-instance ToJSON SubmissionListing
-instance ToJSON SubmissionSendable
+    } deriving (Generic, Show, ToJSON)
