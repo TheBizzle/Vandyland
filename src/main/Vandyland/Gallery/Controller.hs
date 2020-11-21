@@ -127,7 +127,7 @@ handleForbidItem =
       case result of
         Fulfilled _   ->                writeText "Submission successfully forbidden"
         NotAuthorized -> failWith 401 $ writeText "You are not authorized to modify that submission"
-        NotFound      -> failWith 404 $ writeText "Could not find a matching submission to forid"
+        NotFound      -> failWith 404 $ writeText "Could not find a matching submission to forbid"
 
 handleGetModeratorToken :: Snap ()
 handleGetModeratorToken = genToken |> liftIO &>= (succeed "text/plain")
