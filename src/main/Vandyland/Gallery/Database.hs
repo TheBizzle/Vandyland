@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
+module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
@@ -121,6 +121,13 @@ readSubmissionListings sessionName = withDB $
                          , SubmissionDBIsForbidden          ==. False
                          ] [Asc SubmissionDBDateAdded]
       return $ map (entityVal &> dbToSubListing) rows
+
+readSessionExists :: Text -> IO Bool
+readSessionExists sessionName = withDB $
+    do
+      gEntityMaybe <- selectFirst [GalleryDBGalleryName    ==. (Text.toLower sessionName)] []
+      sEntityMaybe <- selectFirst [SubmissionDBSessionName ==. (Text.toLower sessionName)] []
+      return $ (isJust gEntityMaybe || isJust sEntityMaybe)
 
 readSubmissionListingsForModeration :: Text -> UUID -> IO (PrivilegedActionResult [Text])
 readSubmissionListingsForModeration sessionName token = withDB $

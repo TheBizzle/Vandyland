@@ -16,7 +16,7 @@ import Snap.Util.GZip(withCompression)
 
 import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
-import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission)
+import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission)
 import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(SubmissionSendable))
 
 routes :: [(ByteString, Snap ())]
@@ -34,6 +34,7 @@ routes = [ ("echo/:param"                                     ,      ac POST   h
          , ("comments/:session-id/:item-id"                   , wc $ ac GET    handleGetComments)
          , ("gallery-listings/:token"                         , wc $ ac GET    handleListGalleries)
          , ("listings/:session-id"                            , wc $ ac GET    handleListSession)
+         , ("listings/:session-id/exists"                     ,      ac GET    handleSessionExists)
          , ("mod-listings/:session-id/:token"                 , wc $ ac GET    handleListSessionForModeration)
          , ("data-lite"                                       , wc $ ac POST   handleSubmissionsLite)
          , ("data-lite/:token"                                , wc $ ac POST   handleSubmissionsLiteWithToken)
@@ -67,6 +68,10 @@ handleListGalleries = handle1 (Arg "token" asUUID) $
 handleListSession :: Snap ()
 handleListSession = handle1 (Arg "session-id" nonEmpty) $
   readSubmissionListings &> liftIO &>= (encodeText &> (succeed "application/json"))
+
+handleSessionExists :: Snap ()
+handleSessionExists = handle1 (Arg "session-id" nonEmpty) $
+  readSessionExists &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleListSessionForModeration :: Snap ()
 handleListSessionForModeration = handle2 (Arg "session-id" nonEmpty, Arg "token" asUUID) $ \(sid, token) ->
