@@ -1,8 +1,10 @@
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -50,7 +52,6 @@ SignalDB
     signal   Text
     time     UTCTime
     Primary groupID bucketID
-    UniqueSignalDB groupID bucketID
     deriving Show
 |]
 
@@ -109,7 +110,7 @@ withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO 
   do
     flip runSqlPersistMPool pool $
       do
-        runMigration migrateAll
+        --runMigration migrateAll
         action
   where
     connStr = "host=localhost dbname=vandyland user=" <> username <> " password=" <> password <> " port=5432"

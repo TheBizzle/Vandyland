@@ -1,13 +1,16 @@
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
@@ -233,8 +236,9 @@ withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO 
   do
     flip runSqlPersistMPool pool $
       do
-        runMigration migrateAll -- We do this for every DB transaction?  Major performance issue at scale, I'd expect. --JAB (10/4/20)
+        --runMigration migrateAll -- We do this for every DB transaction?  Major performance issue at scale, I'd expect. --JAB (10/4/20)
         action
+
   where
     connStr = "host=localhost dbname=vandyland user=" <> username <> " password=" <> password <> " port=5432"
 
