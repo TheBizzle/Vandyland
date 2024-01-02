@@ -9,7 +9,7 @@ Vandyland
     * Vandyland hasn't been tested with any Postgres version but Postgres 9, so use other versions at your own risk
     * After you think you've gotten Postgres set up, ensure that `psql --version` and `pg_config --version` print version numbers; if not, your installation is probably broken
     * Ensure that that the Postgres server is running by performing `ps aux | grep postgres` and looking for a `postgres` process; if not, you need to launch the server, which can be done by running `pt_ctl start` (or [these instructions](https://www.postgresql.org/docs/9.1/static/server-start.html))
-    * If you get an error in the coming steps that says "Missing C library: pq", you need to get Postgres stuff onto your PATH; on Red Hat, this can be accomplished by installing `postgresql*-devel` through `yum`
+    * If you get an error in the coming steps that says "Missing C library: pq", you need to get Postgres stuff onto your `PATH`; on Red Hat, this can be accomplished by installing `postgresql*-devel` through `yum`; on Ubuntu, it can be something more like `apt install postgresql-server-dev-9.6`
   * Next, you'll need to initialize the Postgres database tables.  From the command prompt, run `psql --username=postgres` and then `CREATE DATABASE vandyland WITH ENCODING='UTF8' CONNECTION LIMIT=-1;` and then `CREATE DATABASE badgerstate WITH ENCODING='UTF8' CONNECTION LIMIT=-1;`.
   * At the root of the repository, add the files `.db_username` and `.db_password`.  The former should contain your Postgres username (default: postgres), and the latter your Postgres password (default: \<empty string>).
   * Run the command `stack install happy` to ensure that the Happy build tool is available for the dependencies
