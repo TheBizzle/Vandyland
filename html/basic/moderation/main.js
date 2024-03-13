@@ -58,7 +58,7 @@ let syncUnapproved = function() {
         img.onclick = function() {
           fetch(window.thisDomain + "/uploads/"  + getSessionName() + "/" + entry.uploadName).then(x => x.text()).then(
             (data) =>
-              showModal(getSessionName(), entry.uploadName, entry.metadata, data, entry.base64Image)
+              showModal(getSessionName(), entry.uploadName, entry.metadata, data, entry.base64Image, false)
           )
         };
 
@@ -165,7 +165,7 @@ let syncApproved = function() {
         img.onclick = function() {
           fetch(window.thisDomain + "/uploads/"  + getSessionName() + "/" + entry.uploadName).then(x => x.text()).then(
             (data) =>
-              showModal(getSessionName(), entry.uploadName, entry.metadata, data, entry.base64Image)
+              showModal(getSessionName(), entry.uploadName, entry.metadata, data, entry.base64Image, true)
           )
         };
 

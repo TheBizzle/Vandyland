@@ -23,7 +23,13 @@ saveWork = function(data, uploadName) { return function() {
 
 }};
 
-window.showModal = function(sessionName, uploadName, metadata, data, imgSrc) {
+window.showModal = function(sessionName, uploadName, metadata, data, imgSrc, isApproved) {
+
+  if (isApproved) {
+    document.getElementById("item-details").classList.add("approved");
+  } else {
+    document.getElementById("item-details").classList.remove("approved");
+  }
 
   document.getElementById("item-header"         ).innerText = metadata === null ? uploadName : uploadName + " by " + metadata;
   document.getElementById("item-details-image"  ).src       = imgSrc;

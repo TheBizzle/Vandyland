@@ -112,6 +112,10 @@
   justify-content: center;
 }
 
+.approved .approval-controls {
+  display: none;
+}
+
 .item-action-button {
   font-size: 40px;
   height:    60px;
