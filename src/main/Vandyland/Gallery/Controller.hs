@@ -6,6 +6,7 @@ import Data.Bifoldable(bimapM_)
 import Data.ByteString(ByteString)
 import Data.Validation(_Failure, _Success, Validation)
 
+import qualified Data.List          as List
 import qualified Data.Map           as Map
 import qualified Data.Text.Encoding as TextEncoding
 import qualified Data.UUID          as UUID
@@ -13,6 +14,8 @@ import qualified Data.UUID.V4       as UUIDGen
 
 import Snap.Core(getParam, Method(DELETE, GET, POST), Snap, writeText)
 import Snap.Util.GZip(withCompression)
+
+import System.Directory(getDirectoryContents)
 
 import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
@@ -40,6 +43,7 @@ routes = [ ("echo/:param"                                     ,      ac POST   h
          , ("data-lite/:token"                                , wc $ ac POST   handleSubmissionsLiteWithToken)
          , ("moderator-token"                                 ,      ac GET    handleGetModeratorToken)
          , ("uploader-token"                                  ,      ac GET    handleGetUploaderToken)
+         , ("gallery-types"                                   ,      ac GET    handleGetGalleryTypes)
          ]
   where
     wc = withCompression
@@ -200,6 +204,13 @@ handleSubmitComment =
       do
         liftIO $ writeComment comment uploadName sessionName author (UUID.fromText parent)
         writeText "" -- Necessary?
+
+handleGetGalleryTypes :: Snap ()
+handleGetGalleryTypes =
+  do
+    paths <- liftIO $ getDirectoryContents "html"
+    let truePaths = List.filter (not . (flip elem) [".", "..", "common", "meta-gallery"]) paths
+    (encodeText &> (succeed "application/json")) truePaths
 
 _handleNewSessionWithParams :: Text -> Bool -> Maybe UUID.UUID -> Snap ()
 _handleNewSessionWithParams name getsPrescreened token =

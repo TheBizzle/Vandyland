@@ -2,13 +2,13 @@
 window.submitToView = function(e) {
   e.preventDefault();
   let viewForm  = document.getElementById("view-form");
-  let selection = viewForm.gallery.selectedOptions[0];
+  let selection = viewForm.querySelector(".gallery-view-item.selected");
   switch (e.submitter.id) {
     case "submit-student":
-      window.open(`/html/basic/#${selection.dataset.sessionName}`);
+      window.open(`/html/basic/#${selection.dataset.sessionName}`, "_blank");
       break;
     case "submit-moderator":
-      window.open(`/html/basic/moderation/#${selection.dataset.sessionName}`);
+      window.open(`/html/basic/moderation/#${selection.dataset.sessionName}`, "_blank");
       break;
     default:
       console.error(`Unknown submitter: ${e.submitter.name}`);
@@ -23,7 +23,7 @@ window.submitToInit = function(e) {
   let initForm  = document.getElementById("init-form");
   let formData  = new FormData(initForm);
   let sessionID = formData.get("name");
-  let getsPreed = formData.get("galleryType") === "prescreen";
+  let getsPreed = formData.get("galleryMode") === "prescreen";
   let token     = window.localStorage.getItem("mod-token");
 
   fetch(`/new-session/${sessionID}/${getsPreed}/${token}`, { method: "POST" }).then(
@@ -41,24 +41,49 @@ window.submitToInit = function(e) {
 
 let render = function(values) {
 
-  let galleryList = document.getElementById("gallery-list");
-  let selection   = galleryList.selectedOptions[0];
+  let galleries = document.getElementById("view-list");
+  let selection = galleries.querySelector(".selected");
 
-  while (galleryList.options.length > 0) {
-    galleryList.remove(0);
-  }
+  galleries.innerHTML = "";
 
   values.forEach(({ galleryName, isPrescreened, numWaiting, uploadNames }) => {
 
-    let suffix = isPrescreened ? ` | ${numWaiting} awaiting moderation` : "";
+    let template = document.getElementById("gallery-view-template");
+    let gView    = document.importNode(template.content, true).querySelector(".gallery-view-item");
 
-    let opt      = document.createElement("option");
-    opt.text     = `${galleryName}: ${uploadNames.length} submissions${suffix}`;
-    opt.selected = selection !== undefined && selection.dataset.sessionName === galleryName;
-    opt.dataset.sessionName   = galleryName;
-    opt.dataset.isPrescreened = isPrescreened;
+    gView.querySelector(".gallery-view-title").innerText = galleryName;
+    gView.title                                          = galleryName;
 
-    galleryList.add(opt);
+    gView.dataset.isPrescreened = isPrescreened;
+    gView.dataset.numUploads    = uploadNames.length;
+    gView.dataset.numWaiting    = numWaiting;
+    gView.dataset.sessionName   = galleryName;
+
+    if (selection !== null && selection.dataset.sessionName === galleryName) {
+      gView.classList.add("selected")
+    }
+
+    gView.onclick = () => {
+
+      Array.from(galleries.querySelectorAll(".selected")).forEach(
+        (el) => {
+          el.classList.remove("selected");
+        }
+      );
+      gView.classList.add("selected");
+
+      document.getElementById("control-name"       ).innerText = galleryName;
+      document.getElementById("control-name"       ).title     = galleryName;
+      document.getElementById("control-uploads"    ).innerText = uploadNames.length;
+      document.getElementById("control-date"       ).innerText = "TBD"
+      document.getElementById("control-unmoderated").innerText = isPrescreened ? numWaiting : "N/A";
+
+      document.getElementById("submit-student"  ).disabled  = false;
+      document.getElementById("submit-moderator").disabled  = !isPrescreened;
+
+    };
+
+    galleries.appendChild(gView);
 
   });
 
@@ -85,3 +110,14 @@ window.sync = function() {
 
 };
 
+window.toggleCollapsible = function(elem) {
+
+  let collapsibleContent = elem.nextElementSibling;
+
+  elem.classList.toggle('active');
+  collapsibleContent.classList.toggle('active');
+
+  collapsibleContent.style.maxHeight =
+    (collapsibleContent.style.maxHeight !== "0px") ? "0px" : `${collapsibleContent.scrollHeight}px`;
+
+};

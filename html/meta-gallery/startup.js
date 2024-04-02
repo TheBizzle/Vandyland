@@ -8,8 +8,8 @@ window.onEnter = (f) => (e) => {
 };
 
 let viewForm = document.getElementById("view-form");
-viewForm.addEventListener('keyup',  onEnter(submitToView));
-viewForm.addEventListener('submit', submitToView);
+viewForm.addEventListener('keyup',    onEnter(submitToView));
+viewForm.addEventListener('submit',   submitToView);
 
 let initForm = document.getElementById("init-form");
 initForm.addEventListener('keyup',  onEnter(submitToInit));
@@ -28,14 +28,6 @@ document.getElementById("sesh-name-input").addEventListener('input', (e) => {
   submitInit.disabled = e.target.value.length === 0;
 });
 
-document.getElementById("gallery-list").addEventListener('change', (e) => {
-  let selection = document.getElementById("gallery-list").selectedOptions[0];
-  if (selection !== undefined) {
-    document.getElementById("submit-student"  ).disabled = false;
-    document.getElementById("submit-moderator").disabled = selection.dataset.isPrescreened === "false";
-  }
-});
-
 let tokenMaybe = window.localStorage.getItem("mod-token");
 if (tokenMaybe !== null) {
   sync()
@@ -48,4 +40,69 @@ if (tokenMaybe !== null) {
       syncLoopID = setInterval(sync, syncRate);
     }
   );
+}
+
+fetch(`${window.thisDomain}/gallery-types`, { method: "GET" }).then((x) => x.json()).then(
+  (types) => {
+
+    const select     = document.getElementById("gallery-template");
+    select.innerHTML = "";
+
+    types.forEach(
+      (t, i) => {
+        const option     = document.createElement("option");
+        option.innerText = t;
+        select.appendChild(option);
+        if (t === "basic") {
+          select.selectedIndex = i;
+        }
+      }
+    );
+
+  }
+)
+
+let originalStarter = null;
+
+window.showStarterModal = function() {
+  const modal     = document.getElementById("starter-modal");
+  const actual    = document.getElementById("starter-code");
+  const inner     = modal.querySelector("#starter-code-inner");
+  inner.value     = actual.value;
+  originalStarter = inner.value;
+  modal.classList.remove("hidden");
+};
+
+window.hideModal = function() {
+  const modal = document.getElementById("starter-modal");
+  modal.querySelector("#starter-code-inner").value = originalStarter;
+  originalStarter                                  = null;
+  modal.classList.add("hidden");
+};
+
+document.getElementById("starter-code-file").oninput = function(e) {
+
+  const elem = e.target;
+  const file = elem.files[0];
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("starter-code-inner").value = reader.result;
+  }
+
+  reader.readAsText(file);
+
+};
+
+document.getElementById("item-save-button").onclick = function() {
+  const elem = document.getElementById("starter-code-inner");
+  const code = elem.value;
+  try {
+    JSON.parse(code);
+    document.getElementById("starter-code").value = code;
+    hideModal();
+  } catch (error) {
+    alert("Could not parse starter code as JSON.  Your starter code was NOT saved!")
+    console.error("Starter code failure", error);
+  }
 }

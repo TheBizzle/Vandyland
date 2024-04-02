@@ -1,0 +1,229 @@
+#section-container {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+}
+
+#gallery-list {
+  height: 200px;
+  margin: 4px 0 10px 0;
+  width:  300px;
+}
+
+#section-wrapper {
+  display:        flex;
+  flex-direction: column;
+}
+
+#init-form {
+  align-items:         center;
+  display:             grid;
+  grid-template-areas: "name  name  name   name   template template template"
+                       "name  name  name   name   template template template"
+                       "modes modes modes  modes  config   config   config"
+                       ".     .     submit submit submit   .        ."
+                       ".     .     submit submit submit   .        .";
+  margin:              15px 25px 30px 25px;
+  row-gap:             10px;
+  width:               100%;
+}
+
+#modes-bin {
+  display:        flex;
+  flex-direction: row;
+  grid-area:      modes;
+}
+
+#sesh-name-input {
+  grid-area: name;
+  margin:    4px 0 8px 0;
+  height:    100%;
+  width:      80%;
+}
+
+#norm-screen-bin {
+  grid-area: mode1;
+}
+
+#prescreen-bin {
+  grid-area: mode2;
+}
+
+#gallery-template-bin {
+  grid-area: template;
+}
+
+#starter-button {
+  grid-area: config;
+}
+
+#submit-init {
+  grid-area:  submit;
+  margin-top: 12px;
+  height:     100%;
+  width:      100%;
+}
+
+#norm-screen-radio {
+  margin-right: 20px;
+}
+
+#starter-code {
+  display: none;
+}
+
+#view-gallery-section {
+  display:        flex;
+  flex-direction: row;
+}
+
+#view-form {
+  column-gap:      15px;
+  display:         flex;
+  flex-direction:  row;
+  justify-content: space-between;
+  margin:          25px 25px 30px 25px;
+  width:           100%;
+}
+
+#view-list {
+  align-content: flex-start;
+  display:       flex;
+  flex-flow:     row wrap;
+  gap:           15px;
+}
+
+#view-controls {
+  border:         1px solid black;
+  border-radius:  4px;
+  display:        flex;
+  flex-direction: column;
+  height:         min-content;
+  max-width:      370px;
+  min-width:      370px;
+  padding:        10px 20px;
+  row-gap:        10px;
+}
+
+#starter-code-inner {
+  font-size:   24px;
+  resize:      none;
+  white-space: nowrap;
+  height:      300px;
+  width:       600px;
+}
+
+#submit-student {
+  background-color: rgba(0, 160, 255, 0.7);
+  margin-top:       5px;
+}
+
+#submit-student[disabled] {
+  background-color: #aaaaaa;
+}
+
+#submit-moderator {
+  background-color: rgb(255,  80, 0, 0.8);
+}
+
+#submit-moderator[disabled] {
+  background-color: #aaaaaa;
+}
+
+form, input, select {
+  font-size: 36px;
+}
+
+.item-details-content {
+  gap: 30px;
+}
+
+.item-column {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+}
+
+.disjunction {
+  align-self: center;
+  font-size:  30px;
+}
+
+.collapsible {
+  font-size: 45px;
+  width:     80%;
+}
+
+.control-label {
+  font-weight: bold;
+  user-select: none;
+}
+
+.control-row {
+  text-overflow: ellipsis;
+  overflow:      hidden;
+  white-space:   nowrap;
+  word-wrap:     nowrap;
+}
+
+.control-submitter {
+  font-size:     28px;
+  color:         black;
+  border-radius: 6px;
+  margin-left:   auto;
+  margin-right:  auto;
+  width:         280px;
+}
+
+.control-submitter[disabled] {
+  pointer-events: none;
+}
+
+.control-submitter:hover {
+  filter: brightness(85%);
+}
+
+.control-submitter:active {
+  filter: brightness(50%);
+}
+
+.gallery-view-item {
+  align-items:      center;
+  background-color: #eeeeee;
+  border:           1px solid black;
+  border-radius:    8px;
+  display:          flex;
+  justify-content:  center;
+  overflow-wrap:    anywhere;
+  padding:          6px;
+  text-align:       center;
+  text-overflow:    ellipsis;
+  user-select:      none;
+  height:           145px;
+  width:            145px;
+}
+
+.gallery-view-title {
+   display:            -webkit-box;
+   overflow:           hidden;
+   -webkit-line-clamp: 3;
+           line-clamp: 3;
+   -webkit-box-orient: vertical;
+}
+
+.gallery-view-item:hover {
+  background-color: rgba(242, 255, 9, 0.4);
+}
+
+.gallery-view-item.selected {
+  background-color: rgba(0, 160, 255, 0.4);
+}
+
+.section {
+  display: initial;
+  width:   80%;
+}
+
+.section.active {
+  border: 1px solid black;
+}

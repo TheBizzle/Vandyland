@@ -1,41 +1,91 @@
 <html>
   <head>
     <meta charset="utf-8"/>
+    <link href="/html/common/main.css" rel="stylesheet">
+    <link href="/html/common/modal.css" rel="stylesheet">
     <link href="main.css" rel="stylesheet">
+    <link href="index.css" rel="stylesheet">
     <script src="/html/common/globals.js"></script>
     <script src="main.js"></script>
   </head>
 
   <body>
+    <div id="section-container">
 
-    <div id="form-container">
+      <div id="section-wrapper">
+        <button class="collapsible active" onclick="toggleCollapsible(this)">Create</button>
+        <div id="create-gallery-section" class="collapsible-content section active">
+          <form id="init-form">
+            <input id="sesh-name-input" type="text" name="name" placeholder="Gallery Name" required><br>
+            <div id="modes-bin">
+              <label id="norm-screen-bin" for="norm-screen-radio">
+                Unmoderated
+                <input type="radio" id="norm-screen-radio" name="galleryMode" value="normal" checked>
+              </label>
+              <label>
+                Moderated
+                <input type="radio" id="prescreen-radio" name="galleryMode" value="prescreen">
+              </label>
+            </div>
+            <label>
+              Template:
+              <select id="gallery-template" name="galleryTemplate">
+              </select>
+            </label>
+            <input id="starter-button" type="button" value="Add Starter" onclick="showStarterModal()">
+            <textarea id="starter-code" name="galleryConfig"></textarea>
+            <input id="submit-init" type="submit" value="Create">
+          </form>
+        </div>
+      </div>
 
-      <form id="view-form">
-        <fieldset>
-          <legend>Your Galleries</legend>
-          <select id="gallery-list" class="gallery-list" name="gallery" multiple required></select><br>
-          <input id="submit-student"   type="submit" value="View as Student"   disabled>
-          <input id="submit-moderator" type="submit" value="View as Moderator" disabled>
-        </fieldset>
-      </form>
-
-      <form id="init-form">
-        <fieldset>
-          <legend>Create a New Gallery</legend>
-          <input id="sesh-name-input" type="text" name="name" placeholder="Gallery Name" required><br>
-          <label for="norm-screen-radio">
-            Standard
-            <input type="radio" id="norm-screen-radio" name="galleryType" value="normal" checked>
-          </label>
-          <label>
-            Pre-Screened
-            <input type="radio" id="prescreen-radio" name="galleryType" value="prescreen">
-          </label><br>
-          <input id="submit-init" type="submit" value="Create">
-        </fieldset>
-      </form>
+      <div id="section-wrapper">
+        <button id="approved-toggle" class="collapsible active" onclick="toggleCollapsible(this)">View</button>
+        <div id="view-gallery-section" class="collapsible-content section active">
+          <form id="view-form">
+            <div id="view-list">
+            </div>
+            <div id="view-controls">
+              <div class="control-row"><span class="control-label">Name</span>:          <span id="control-name"         class="control-value">-</span></div>
+              <div class="control-row"><span class="control-label">Uploads</span>:       <span id="control-uploads"      class="control-value">-</span></div>
+              <div class="control-row"><span class="control-label">Creation Date</span>: <span id="control-date"         class="control-value">-</span></div>
+              <div class="control-row"><span class="control-label">Num. Waiting</span>:   <span id="control-unmoderated"  class="control-value">-</span></div>
+              <input id="submit-student"   type="submit" class="control-submitter" value="View as Student"   disabled="true">
+              <input id="submit-moderator" type="submit" class="control-submitter" value="View as Moderator" disabled="true">
+            </div>
+          </form>
+        </div>
+      </div>
 
     </div>
+
+    <div id="starter-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="item-details-header">
+          <span class="close" onclick="hideModal()">&times;</span>
+          <h2 id="item-header">Modify Starter JSON</h2>
+        </div>
+        <div id="item-details-body" class="item-details-body">
+          <div class="item-details-content">
+            <div class="item-column">
+              <textarea id="starter-code-inner" contenteditable="true"></textarea>
+              <strong class="disjunction">-OR-</strong>
+              <input id="starter-code-file" type="file">
+            </div>
+            <div class="item-details-controls">
+              <input id="item-save-button" class="item-details-button" type="button" value="Save">
+            </div>
+          </div>
+        </div>
+        <div class="item-details-footer"></div>
+      </div>
+    </div>
+
+    <template id="gallery-view-template">
+      <div class="gallery-view-item">
+        <div class="gallery-view-title"></div>
+      </div>
+    </template>
 
   </body>
 

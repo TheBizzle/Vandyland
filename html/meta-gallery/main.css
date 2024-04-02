@@ -1,32 +1,34 @@
-#form-container {
-  display:        flex;
-  flex-direction: row;
+.collapsible {
+  background-color: #40c040;
+  border:           none;
+  border-radius:    10px;
+  color:            white;
+  cursor:           pointer;
+  font-size:        18px;
+  outline:          none;
+  padding:          18px;
+  text-align:       left;
+  width:            860px;
 }
 
-#gallery-list {
-  height: 200px;
-  margin: 4px 0 10px 0;
-  width:  300px;
+.collapsible.active {
+  background-color: #40a040;
+  border-radius:    10px 10px 0 0;
+  font-weight:      bold;
 }
 
-#init-form {
-  max-width: fit-content;
+.collapsible:hover {
+  background-color: #289828;
+
 }
 
-#norm-screen-radio {
-  margin-right: 20px;
+.collapsible.active + .collapsible-content {
+  border-radius: 0 0 4px 4px;
+  display:       flex;
 }
 
-#sesh-name-input {
-  margin: 4px 0 8px 0;
-  width:  217px;
-}
-
-#submit-init {
-  margin-top: 12px;
-  width:      100%;
-}
-
-#view-form {
-  max-width: fit-content;
+.collapsible-content {
+  display:    none;
+  overflow-y: scroll;
+  width:      820px;
 }

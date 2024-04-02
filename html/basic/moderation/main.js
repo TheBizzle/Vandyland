@@ -229,4 +229,4 @@ let syncApproved = function() {
 let sync = function() {
   syncUnapproved();
   syncApproved();
-}
+};
