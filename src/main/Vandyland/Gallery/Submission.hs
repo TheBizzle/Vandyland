@@ -18,6 +18,9 @@ data GalleryListing
     galleryName   :: Text
   , isPrescreened :: Bool
   , numWaiting    :: Int
+  , numApproved   :: Int
+  , creationTime  :: Integer
+  , lastSubTime   :: Integer
   } deriving (Generic, Show, ToJSON)
 
 data Submission

@@ -110,11 +110,22 @@ registerNewSession name getsPrescreened tokenMaybe = withDB $
 readGalleryListings :: UUID -> IO [GalleryListing]
 readGalleryListings token = withDB $
     do
-      rows        <- selectList [GalleryDBOwnerToken ==. (Just $ UUID.toText token)] [Asc GalleryDBDateAdded]
-      let listings = map (entityVal &> dbToGalListing) rows
-      flip mapM listings $ \listing@(GalleryListing name _ _) -> liftIO $ withDB $ do
-        num <- count [SubmissionDBSessionName ==. (Text.toLower name), SubmissionDBIsAwaitingModeration ==. True]
-        return $ listing { numWaiting = num }
+      rows <- selectList [GalleryDBOwnerToken ==. (Just $ UUID.toText token)] [Asc GalleryDBDateAdded]
+      let particles = map (entityVal &> dbToGalListingParticle) rows
+      flip mapM particles $ \(name, isPre, cDate) -> liftIO $ withDB $ do
+        numWaiting  <- count [SubmissionDBSessionName ==. (Text.toLower name), SubmissionDBIsAwaitingModeration ==. True]
+        rows        <- selectList [ SubmissionDBSessionName          ==. (Text.toLower name)
+                                  , SubmissionDBIsAwaitingModeration ==. False
+                                  , SubmissionDBIsForbidden          ==. False
+                                  ] [Asc SubmissionDBDateAdded]
+        let uploads     = map entityVal rows
+        let numApproved = length uploads
+        let cTime       = asPOSIX cDate
+        let lTime       = getMax cTime uploads
+        return $ GalleryListing name isPre numWaiting numApproved cTime lTime
+    where
+      getMax initTime = (map extractSubDateAdded) >>> (foldr chooseLater initTime)
+      chooseLater a b = if a < b then b else a
 
 readSubmissionListings :: Text -> IO [SubmissionListing]
 readSubmissionListings sessionName = withDB $
@@ -238,7 +249,6 @@ withDB action = runNoLoggingT $ withPostgresqlPool connStr 50 $ \pool -> liftIO 
       do
         --runMigration migrateAll -- We do this for every DB transaction?  Major performance issue at scale, I'd expect. --JAB (10/4/20)
         action
-
   where
     connStr = "host=localhost dbname=vandyland user=" <> username <> " password=" <> password <> " port=5432"
 
@@ -260,8 +270,8 @@ extractOwnerToken (GalleryDB _ otm _ _) = otm >>= UUID.fromText
 extractGetsPrescreened :: GalleryDB -> Bool
 extractGetsPrescreened (GalleryDB _ _ gp _) = gp
 
-dbToGalListing :: GalleryDB -> GalleryListing
-dbToGalListing (GalleryDB gn _ gp _) = GalleryListing gn gp 0
+dbToGalListingParticle :: GalleryDB -> (Text, Bool, UTCTime)
+dbToGalListingParticle (GalleryDB gn _ gp da) = (gn, gp, da)
 
 dbToSubListing :: SubmissionDB -> SubmissionListing
 dbToSubListing (SubmissionDB _ uploadName _ _ isSuppressed _ _ _ _ _) = SubmissionListing uploadName isSuppressed
@@ -271,7 +281,7 @@ dbToSubmission ownerToken (SubmissionDB _ uploadName image token _ _ _ metadata 
   Submission uploadName image (token >>= UUID.fromText) ownerToken metadata
 
 dbToComment :: CommentDB -> Comment
-dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (round $ (utcTimeToPOSIXSeconds time) * 1000)
+dbToComment (CommentDB uuid comment author parent _ _ time) = Comment uuid comment author parent (asPOSIX time)
 
 extractSessionName :: SubmissionDB -> Text
 extractSessionName (SubmissionDB sn _ _ _ _ _ _ _ _ _) = sn
@@ -290,6 +300,12 @@ extractNeedsModeration (SubmissionDB _ _ _ _ _ _ needsModeration _ _ _) = needsM
 
 extractData :: SubmissionDB -> Text
 extractData (SubmissionDB _ _ _ _ _ _ _ _ extraData _) = extraData
+
+extractSubDateAdded :: SubmissionDB -> Integer
+extractSubDateAdded (SubmissionDB _ _ _ _ _ _ _ _ _ dateAdded) = asPOSIX dateAdded
+
+asPOSIX :: UTCTime -> Integer
+asPOSIX = utcTimeToPOSIXSeconds >>> (* 1000) >>> round
 
 data PrivilegedActionResult a
   = Fulfilled a
