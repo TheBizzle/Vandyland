@@ -45,13 +45,25 @@
           <form id="view-form">
             <div id="view-list">
             </div>
-            <div id="view-controls">
-              <div class="control-row"><span class="control-label">Name</span>:          <span id="control-name"         class="control-value">-</span></div>
-              <div class="control-row"><span class="control-label">Uploads</span>:       <span id="control-uploads"      class="control-value">-</span></div>
-              <div class="control-row"><span class="control-label">Creation Date</span>: <span id="control-date"         class="control-value">-</span></div>
-              <div class="control-row"><span class="control-label">Num. Waiting</span>:   <span id="control-unmoderated"  class="control-value">-</span></div>
-              <input id="submit-student"   type="submit" class="control-submitter" value="View as Student"   disabled="true">
-              <input id="submit-moderator" type="submit" class="control-submitter" value="View as Moderator" disabled="true">
+            <div id="controls">
+              <div id="details">
+                <div class="control-row"><span class="control-label">Name</span>:          <span id="control-name"         class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Uploads</span>:       <span id="control-uploads"      class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Creation Date</span>: <span id="control-date"         class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Num. Waiting</span>:   <span id="control-unmoderated"  class="control-value">-</span></div>
+                <input id="submit-student"   type="submit" class="control-submitter" value="View as Student"   disabled="true">
+                <input id="submit-moderator" type="submit" class="control-submitter" value="View as Moderator" disabled="true">
+              </div>
+              <label id="sorting-hat">
+                <span id="sorting-label">Sort By</span>
+                <select id="sorting-type">
+                  <option>Latest Initialization</option>
+                  <option>Latest Submission</option>
+                  <option>Alphabetical</option>
+                  <option>Most Uploads</option>
+                  <option>Most Waiting</option>
+                </select>
+              </label>
             </div>
           </form>
         </div>

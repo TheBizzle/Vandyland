@@ -93,7 +93,13 @@
   gap:           15px;
 }
 
-#view-controls {
+#controls {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+}
+
+#details {
   border:         1px solid black;
   border-radius:  4px;
   display:        flex;
@@ -103,6 +109,21 @@
   min-width:      370px;
   padding:        10px 20px;
   row-gap:        10px;
+}
+
+#sorting-hat {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            5px;
+}
+
+#sorting-label {
+  font-weight: bold;
+}
+
+#sorting-type {
+  width: 100%;
 }
 
 #starter-code-inner {
@@ -163,7 +184,6 @@ form, input, select {
   text-overflow: ellipsis;
   overflow:      hidden;
   white-space:   nowrap;
-  word-wrap:     nowrap;
 }
 
 .control-submitter {

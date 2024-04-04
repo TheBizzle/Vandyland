@@ -39,14 +39,25 @@ window.submitToInit = function(e) {
 
 };
 
+let lastValues = [];
+
+window.refreshSorting = function() {
+  render(lastValues);
+}
+
 let render = function(values) {
 
   let galleries = document.getElementById("view-list");
   let selection = galleries.querySelector(".selected");
 
+  lastValues = values;
+
   galleries.innerHTML = "";
 
-  values.forEach(({ galleryName, isPrescreened, numWaiting, uploadNames }) => {
+  let sortedValues = values.sort(genSortingFn());
+
+  sortedValues.forEach(({ creationTime, galleryName, isPrescreened, lastSubTime
+                        , numWaiting, uploadNames }) => {
 
     let template = document.getElementById("gallery-view-template");
     let gView    = document.importNode(template.content, true).querySelector(".gallery-view-item");
@@ -54,7 +65,9 @@ let render = function(values) {
     gView.querySelector(".gallery-view-title").innerText = galleryName;
     gView.title                                          = galleryName;
 
+    gView.dataset.creationTime  = creationTime;
     gView.dataset.isPrescreened = isPrescreened;
+    gView.dataset.lastSubTime   = lastSubTime;
     gView.dataset.numUploads    = uploadNames.length;
     gView.dataset.numWaiting    = numWaiting;
     gView.dataset.sessionName   = galleryName;
@@ -72,10 +85,13 @@ let render = function(values) {
       );
       gView.classList.add("selected");
 
+      let creationDate = new Date(creationTime);
+      let dateString   = creationDate.toLocaleDateString("en-US", { year: "2-digit", month: "numeric", day: "numeric" });
+
       document.getElementById("control-name"       ).innerText = galleryName;
       document.getElementById("control-name"       ).title     = galleryName;
       document.getElementById("control-uploads"    ).innerText = uploadNames.length;
-      document.getElementById("control-date"       ).innerText = "TBD"
+      document.getElementById("control-date"       ).innerText = dateString;
       document.getElementById("control-unmoderated").innerText = isPrescreened ? numWaiting : "N/A";
 
       document.getElementById("submit-student"  ).disabled  = false;
@@ -89,6 +105,27 @@ let render = function(values) {
 
 };
 
+let genSortingFn = () => {
+
+  let sortingType = document.getElementById("sorting-type").value;
+
+  switch (sortingType) {
+    case "Latest Initialization":
+      return ((a, b) => b.creationTime - a.creationTime);
+    case "Latest Submission":
+      return ((a, b) => b.lastSubTime - a.lastSubTime);
+    case "Alphabetical":
+      return ((a, b) => a.galleryName < b.galleryName ? -1 : 1);
+    case "Most Uploads":
+      return ((a, b) => b.uploadNames.length - a.uploadNames.length);
+    case "Most Waiting":
+      return ((a, b) => b.numWaiting - a.numWaiting);
+    default:
+      console.error(`Invalid sorting criteria: ${sortingType}`);
+  }
+
+};
+
 window.sync = function() {
 
   let token = window.localStorage.getItem("mod-token");
@@ -97,10 +134,13 @@ window.sync = function() {
     function (listings) {
 
       let promises =
-        listings.map(({ galleryName, isPrescreened, numWaiting }) => {
+        listings.map(({ creationTime, galleryName, isPrescreened, lastSubTime
+                      , numApproved, numWaiting }) => {
           return fetch(`${window.thisDomain}/listings/${galleryName}`, { method: "GET" }).
             then((x) => x.json()).
-            then((x) => { return { galleryName, isPrescreened, numWaiting, uploadNames: x } })
+            then((x) => { return { creationTime, galleryName, isPrescreened
+                                 , lastSubTime, numApproved, numWaiting
+                                 , uploadNames: x } })
         });
 
       Promise.all(promises).then(render);

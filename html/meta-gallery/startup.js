@@ -106,3 +106,7 @@ document.getElementById("item-save-button").onclick = function() {
     console.error("Starter code failure", error);
   }
 }
+
+document.getElementById("sorting-type").addEventListener("change", (e) => {
+  window.refreshSorting();
+});
