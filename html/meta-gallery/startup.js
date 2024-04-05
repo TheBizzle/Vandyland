@@ -48,7 +48,7 @@ fetch(`${window.thisDomain}/gallery-types`, { method: "GET" }).then((x) => x.jso
     const select     = document.getElementById("gallery-template");
     select.innerHTML = "";
 
-    types.forEach(
+    types.sort().forEach(
       (t, i) => {
         const option     = document.createElement("option");
         option.innerText = t;
