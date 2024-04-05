@@ -43,6 +43,7 @@ import Vandyland.Gallery.Submission(GalleryListing(GalleryListing), Submission(S
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 GalleryDB
     galleryName     Text
+    templateName    Text
     ownerToken      Text Maybe
     getsPrescreened Bool
     config          Text Maybe
@@ -92,8 +93,8 @@ uniqueSubmissionName sessionName = withDB $
       Nothing  -> return name
       (Just _) -> liftIO $ uniqueSubmissionName sessionName
 
-registerNewSession :: Text -> Bool -> Maybe Text -> Maybe UUID -> IO Bool
-registerNewSession name getsPrescreened configMaybe tokenMaybe = withDB $
+registerNewSession :: Text -> Text -> Bool -> Maybe Text -> Maybe UUID -> IO Bool
+registerNewSession template name getsPrescreened configMaybe tokenMaybe = withDB $
   do
     entityMaybe <- selectFirst [GalleryDBGalleryName ==. name] []
     rows        <- selectList  [SubmissionDBSessionName ==. (Text.toLower name)] []
@@ -106,7 +107,7 @@ registerNewSession name getsPrescreened configMaybe tokenMaybe = withDB $
       do
         timestamp <- liftIO getCurrentTime
         let tokey  = map UUID.toText tokenMaybe
-        insert $ GalleryDB (Text.toLower name) tokey getsPrescreened configMaybe timestamp
+        insert $ GalleryDB (Text.toLower name) (Text.toLower template) tokey getsPrescreened configMaybe timestamp
 
 readGalleryListings :: UUID -> IO [GalleryListing]
 readGalleryListings token = withDB $
@@ -266,13 +267,13 @@ retrieveSubmission f givenTokenMaybe teacherTokenMaybe submission = withDB $
           NotAuthorized
 
 extractOwnerToken :: GalleryDB -> Maybe UUID
-extractOwnerToken (GalleryDB _ otm _ _ _) = otm >>= UUID.fromText
+extractOwnerToken (GalleryDB _ _ otm _ _ _) = otm >>= UUID.fromText
 
 extractGetsPrescreened :: GalleryDB -> Bool
-extractGetsPrescreened (GalleryDB _ _ gp _ _) = gp
+extractGetsPrescreened (GalleryDB _ _ _ gp _ _) = gp
 
 dbToGalListingParticle :: GalleryDB -> (Text, Bool, UTCTime)
-dbToGalListingParticle (GalleryDB gn _ gp _ da) = (gn, gp, da)
+dbToGalListingParticle (GalleryDB gn _ _ gp _ da) = (gn, gp, da)
 
 dbToSubListing :: SubmissionDB -> SubmissionListing
 dbToSubListing (SubmissionDB _ uploadName _ _ isSuppressed _ _ _ _ _) = SubmissionListing uploadName isSuppressed

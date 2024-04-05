@@ -23,6 +23,7 @@ window.submitToInit = function(e) {
   let initForm  = document.getElementById("init-form");
   let formData  = new FormData(initForm);
   let sessionID = formData.get("name");
+  let template  = formData.get("galleryTemplate");
 
   let postData = new FormData();
   postData.append("gets-prescreened", formData.get("galleryMode") === "prescreen");
@@ -36,7 +37,7 @@ window.submitToInit = function(e) {
       ([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))
     ).join("&");
 
-  fetch(`/new-session/${sessionID}`, { method: "POST", body: queryString, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(
+  fetch(`/new-session/${template}/${sessionID}`, { method: "POST", body: queryString, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(
     (response) => {
       if (!response.ok)
         response.text().then((reason) => alert(`Could not create new session.  ${reason}`));

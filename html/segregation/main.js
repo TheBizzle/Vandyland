@@ -33,7 +33,7 @@ window.startSession = function(sessionName) {
   };
 
   if (sessionName === undefined) {
-    fetch(window.thisDomain + "/new-session", { method: "POST" }).then((x) => x.text()).then(startup);
+    fetch(window.thisDomain + "/new-session/segregation", { method: "POST" }).then((x) => x.text()).then(startup);
   } else {
     startup(sessionName);
     sync()

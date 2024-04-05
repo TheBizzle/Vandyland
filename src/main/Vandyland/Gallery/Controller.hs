@@ -17,15 +17,15 @@ import Snap.Util.GZip(withCompression)
 
 import System.Directory(getDirectoryContents)
 
-import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
+import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
 import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission)
 import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(SubmissionSendable))
 
 routes :: [(ByteString, Snap ())]
 routes = [ ("echo/:param"                                     ,      ac POST   handleEchoData)
-         , ("new-session"                                     ,      ac POST   handleNewSession)
-         , ("new-session/:session-id"                         , wc $ ac POST   handleNewSessionWithParams)
+         , ("new-session/:template"                           ,      ac POST   handleNewSession)
+         , ("new-session/:template/:session-id"               , wc $ ac POST   handleNewSessionWithParams)
          , ("uploads"                                         ,      ac POST   handleUpload)
          , ("file-uploads"                                    ,      ac POST   handleUploadFile)
          , ("uploads/:session-id/:item-id"                    , wc $ ac GET    handleDownloadItem)
@@ -55,15 +55,15 @@ handleEchoData = handle1 (Arg "param" nonEmpty) $ \param -> withFileUploads $ \f
   maybe (notifyBadParams [param]) writeText ((map TextEncoding.decodeUtf8 prm) <|> (Map.lookup param fileMap))
 
 handleNewSession :: Snap ()
-handleNewSession =
+handleNewSession = handle1 (Arg "template" nonEmpty) $ \template ->
   do
     name <- liftIO $ uniqueSessionName
-    _handleNewSessionWithParams name False Nothing Nothing
+    _handleNewSessionWithParams template name False Nothing Nothing
 
 handleNewSessionWithParams :: Snap ()
 handleNewSessionWithParams =
-  handle4 (Arg "gets-prescreened" asBool, Arg "config" free, Arg "token" asUUID, Arg "session-id" nonEmpty) $ \(gps, config, token, sid) ->
-    _handleNewSessionWithParams sid gps (genConfigMaybe config) $ Just token
+  handle5 (Arg "gets-prescreened" asBool, Arg "config" free, Arg "template" nonEmpty, Arg "token" asUUID, Arg "session-id" nonEmpty) $ \(gps, config, template, token, sid) ->
+    _handleNewSessionWithParams template sid gps (genConfigMaybe config) $ Just token
   where
     genConfigMaybe config = if config == "" then Nothing else Just config
 
@@ -214,10 +214,10 @@ handleGetGalleryTypes =
     let truePaths = List.filter (not . (flip elem) [".", "..", "common", "meta-gallery"]) paths
     (encodeText &> (succeed "application/json")) truePaths
 
-_handleNewSessionWithParams :: Text -> Bool -> Maybe Text -> Maybe UUID.UUID -> Snap ()
-_handleNewSessionWithParams name getsPrescreened config token =
+_handleNewSessionWithParams :: Text -> Text -> Bool -> Maybe Text -> Maybe UUID.UUID -> Snap ()
+_handleNewSessionWithParams template name getsPrescreened config token =
   do
-    wasSuccessful <- liftIO $ registerNewSession name getsPrescreened config token
+    wasSuccessful <- liftIO $ registerNewSession template name getsPrescreened config token
     if wasSuccessful then
       writeText name
     else
