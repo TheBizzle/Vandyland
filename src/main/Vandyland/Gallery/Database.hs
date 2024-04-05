@@ -38,13 +38,14 @@ import Vandyland.Common.DBCredentials(password, username)
 
 import Vandyland.Gallery.Comment(Comment(Comment, time))
 import Vandyland.Gallery.NameGen(generateName)
-import Vandyland.Gallery.Submission(GalleryListing(GalleryListing, numWaiting), Submission(Submission), SubmissionListing(SubmissionListing))
+import Vandyland.Gallery.Submission(GalleryListing(GalleryListing), Submission(Submission), SubmissionListing(SubmissionListing))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 GalleryDB
     galleryName     Text
     ownerToken      Text Maybe
     getsPrescreened Bool
+    config          Text Maybe
     dateAdded       UTCTime
     Primary galleryName
     deriving Show
@@ -91,8 +92,8 @@ uniqueSubmissionName sessionName = withDB $
       Nothing  -> return name
       (Just _) -> liftIO $ uniqueSubmissionName sessionName
 
-registerNewSession :: Text -> Bool -> Maybe UUID -> IO Bool
-registerNewSession name getsPrescreened tokenMaybe = withDB $
+registerNewSession :: Text -> Bool -> Maybe Text -> Maybe UUID -> IO Bool
+registerNewSession name getsPrescreened configMaybe tokenMaybe = withDB $
   do
     entityMaybe <- selectFirst [GalleryDBGalleryName ==. name] []
     rows        <- selectList  [SubmissionDBSessionName ==. (Text.toLower name)] []
@@ -105,7 +106,7 @@ registerNewSession name getsPrescreened tokenMaybe = withDB $
       do
         timestamp <- liftIO getCurrentTime
         let tokey  = map UUID.toText tokenMaybe
-        insert $ GalleryDB (Text.toLower name) tokey getsPrescreened timestamp
+        insert $ GalleryDB (Text.toLower name) tokey getsPrescreened configMaybe timestamp
 
 readGalleryListings :: UUID -> IO [GalleryListing]
 readGalleryListings token = withDB $
@@ -265,13 +266,13 @@ retrieveSubmission f givenTokenMaybe teacherTokenMaybe submission = withDB $
           NotAuthorized
 
 extractOwnerToken :: GalleryDB -> Maybe UUID
-extractOwnerToken (GalleryDB _ otm _ _) = otm >>= UUID.fromText
+extractOwnerToken (GalleryDB _ otm _ _ _) = otm >>= UUID.fromText
 
 extractGetsPrescreened :: GalleryDB -> Bool
-extractGetsPrescreened (GalleryDB _ _ gp _) = gp
+extractGetsPrescreened (GalleryDB _ _ gp _ _) = gp
 
 dbToGalListingParticle :: GalleryDB -> (Text, Bool, UTCTime)
-dbToGalListingParticle (GalleryDB gn _ gp da) = (gn, gp, da)
+dbToGalListingParticle (GalleryDB gn _ gp _ da) = (gn, gp, da)
 
 dbToSubListing :: SubmissionDB -> SubmissionListing
 dbToSubListing (SubmissionDB _ uploadName _ _ isSuppressed _ _ _ _ _) = SubmissionListing uploadName isSuppressed

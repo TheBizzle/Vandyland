@@ -23,10 +23,20 @@ window.submitToInit = function(e) {
   let initForm  = document.getElementById("init-form");
   let formData  = new FormData(initForm);
   let sessionID = formData.get("name");
-  let getsPreed = formData.get("galleryMode") === "prescreen";
-  let token     = window.localStorage.getItem("mod-token");
 
-  fetch(`/new-session/${sessionID}/${getsPreed}/${token}`, { method: "POST" }).then(
+  let postData = new FormData();
+  postData.append("gets-prescreened", formData.get("galleryMode") === "prescreen");
+  postData.append("token"           , window.localStorage.getItem("mod-token"));
+  postData.append("config"          , formData.get("galleryConfig"));
+
+  let removeCRs = (str) => str.replace(/\r/g, '');
+
+  let queryString =
+    Array.from(postData.entries()).map(
+      ([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))
+    ).join("&");
+
+  fetch(`/new-session/${sessionID}`, { method: "POST", body: queryString, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(
     (response) => {
       if (!response.ok)
         response.text().then((reason) => alert(`Could not create new session.  ${reason}`));
