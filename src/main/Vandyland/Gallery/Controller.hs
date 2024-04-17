@@ -19,7 +19,7 @@ import System.Directory(getDirectoryContents)
 
 import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
-import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission)
+import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readStarterConfigFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission)
 import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(SubmissionSendable))
 
 routes :: [(ByteString, Snap ())]
@@ -35,6 +35,7 @@ routes = [ ("echo/:param"                                     ,      ac POST   h
          , ("uploads/:session-id/:item-id/:token/reject"      ,      ac POST   handleForbidItem)
          , ("comments"                                        ,      ac POST   handleSubmitComment)
          , ("comments/:session-id/:item-id"                   , wc $ ac GET    handleGetComments)
+         , ("starter-config/:session-id"                      , wc $ ac GET    handleGetStarterConfig)
          , ("gallery-listings/:token"                         , wc $ ac GET    handleListGalleries)
          , ("listings/:session-id"                            , wc $ ac GET    handleListSession)
          , ("listings/:session-id/exists"                     ,      ac GET    handleSessionExists)
@@ -213,6 +214,16 @@ handleSubmitComment =
       do
         liftIO $ writeComment comment uploadName sessionName author (UUID.fromText parent)
         writeText "" -- Necessary?
+
+handleGetStarterConfig :: Snap ()
+handleGetStarterConfig =
+  handle1 (Arg "session-id" nonEmpty) $ \galleryName ->
+    do
+      starterMaybe <- liftIO $ readStarterConfigFor galleryName
+      case starterMaybe of
+        Nothing               -> failWith 404 $ writeText $ "No gallery with name '" <> galleryName <> "' was found."
+        (Just Nothing)        -> failWith 404 $ writeText $ "No starter config has been uploaded for this gallery."
+        (Just (Just starter)) -> succeed "text/plain" starter
 
 handleGetGalleryTypes :: Snap ()
 handleGetGalleryTypes =

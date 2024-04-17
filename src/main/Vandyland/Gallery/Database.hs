@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
+module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readStarterConfigFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
@@ -229,6 +229,12 @@ writeSubmission sessionName imageBytes tokenMaybe metadata extraData = withDB $
       void $ insert subDB
       return uploadName
 
+readStarterConfigFor :: Text -> IO (Maybe (Maybe Text))
+readStarterConfigFor galleryName = withDB $
+  do
+    entryMaybe <- selectFirst [GalleryDBGalleryName ==. (Text.toLower galleryName)] []
+    return $ map (entityVal &> extractStarterConfig) entryMaybe
+
 readCommentsFor :: Text -> Text -> IO [Comment]
 readCommentsFor sessionName uploadName = withDB $
     do
@@ -271,6 +277,9 @@ extractOwnerToken (GalleryDB _ _ otm _ _ _) = otm >>= UUID.fromText
 
 extractGetsPrescreened :: GalleryDB -> Bool
 extractGetsPrescreened (GalleryDB _ _ _ gp _ _) = gp
+
+extractStarterConfig :: GalleryDB -> Maybe Text
+extractStarterConfig (GalleryDB _ _ _ _ sc _) = sc
 
 dbToGalListingParticle :: GalleryDB -> (Text, Bool, UTCTime)
 dbToGalListingParticle (GalleryDB gn _ _ gp _ da) = (gn, gp, da)
