@@ -95,16 +95,10 @@ document.getElementById("starter-code-file").oninput = function(e) {
 };
 
 document.getElementById("item-save-button").onclick = function() {
-  const elem = document.getElementById("starter-code-inner");
-  const code = elem.value;
-  try {
-    JSON.parse(code);
-    document.getElementById("starter-code").value = code;
-    hideModal();
-  } catch (error) {
-    alert("Could not parse starter code as JSON.  Your starter code was NOT saved!")
-    console.error("Starter code failure", error);
-  }
+  const elem    = document.getElementById("starter-code-inner");
+  const starter = elem.value;
+  document.getElementById("starter-code").value = starter;
+  hideModal();
 }
 
 document.getElementById("sorting-type").addEventListener("change", (e) => {
