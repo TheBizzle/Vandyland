@@ -60,16 +60,17 @@ let render = function(values) {
 
   let sortedValues = values.sort(genSortingFn());
 
-  sortedValues.forEach(({ creationTime, galleryName, isPrescreened, lastSubTime
-                        , numWaiting, uploadNames }) => {
+  sortedValues.forEach(({ creationTime, galleryName, template, isPrescreened
+                        , lastSubTime, numWaiting, uploadNames }) => {
 
-    let template = document.getElementById("gallery-view-template");
-    let gView    = document.importNode(template.content, true).querySelector(".gallery-view-item");
+    let templateHTML = document.getElementById("gallery-view-template");
+    let gView        = document.importNode(templateHTML.content, true).querySelector(".gallery-view-item");
 
     gView.querySelector(".gallery-view-title").innerText = galleryName;
     gView.title                                          = galleryName;
 
     gView.dataset.creationTime  = creationTime;
+    gView.dataset.template      = template;
     gView.dataset.isPrescreened = isPrescreened;
     gView.dataset.lastSubTime   = lastSubTime;
     gView.dataset.numUploads    = uploadNames.length;
@@ -94,6 +95,8 @@ let render = function(values) {
 
       document.getElementById("control-name"       ).innerText = galleryName;
       document.getElementById("control-name"       ).title     = galleryName;
+      document.getElementById("control-template"   ).innerText = template;
+      document.getElementById("control-template"   ).title     = template;
       document.getElementById("control-uploads"    ).innerText = uploadNames.length;
       document.getElementById("control-date"       ).innerText = dateString;
       document.getElementById("control-unmoderated").innerText = isPrescreened ? numWaiting : "N/A";
@@ -138,14 +141,14 @@ window.sync = function() {
     function (listings) {
 
       let promises =
-        listings.map(({ creationTime, galleryName, isPrescreened, lastSubTime
-                      , numApproved, numWaiting }) => {
-          return fetch(`${window.thisDomain}/listings/${galleryName}`, { method: "GET" }).
-            then((x) => x.json()).
-            then((x) => { return { creationTime, galleryName, isPrescreened
-                                 , lastSubTime, numApproved, numWaiting
-                                 , uploadNames: x } })
-        });
+        listings.map(
+          (l) => {
+            const url = `${window.thisDomain}/listings/${l.galleryName}`;
+            return fetch(url, { method: "GET" }).
+              then((x) => x.json()).
+              then((x) => { return { ...l, uploadNames: x } })
+          }
+        );
 
       Promise.all(promises).then(render);
 

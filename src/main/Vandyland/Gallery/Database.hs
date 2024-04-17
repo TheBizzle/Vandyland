@@ -114,7 +114,7 @@ readGalleryListings token = withDB $
     do
       rows <- selectList [GalleryDBOwnerToken ==. (Just $ UUID.toText token)] [Asc GalleryDBDateAdded]
       let particles = map (entityVal &> dbToGalListingParticle) rows
-      flip mapM particles $ \(name, isPre, cDate) -> liftIO $ withDB $ do
+      flip mapM particles $ \(name, template, isPre, cDate) -> liftIO $ withDB $ do
         numWaiting  <- count [SubmissionDBSessionName ==. (Text.toLower name), SubmissionDBIsAwaitingModeration ==. True]
         rows        <- selectList [ SubmissionDBSessionName          ==. (Text.toLower name)
                                   , SubmissionDBIsAwaitingModeration ==. False
@@ -124,7 +124,7 @@ readGalleryListings token = withDB $
         let numApproved = length uploads
         let cTime       = asPOSIX cDate
         let lTime       = getMax cTime uploads
-        return $ GalleryListing name isPre numWaiting numApproved cTime lTime
+        return $ GalleryListing name template isPre numWaiting numApproved cTime lTime
     where
       getMax initTime = (map extractSubDateAdded) >>> (foldr chooseLater initTime)
       chooseLater a b = if a < b then b else a
@@ -281,8 +281,8 @@ extractGetsPrescreened (GalleryDB _ _ _ gp _ _) = gp
 extractStarterConfig :: GalleryDB -> Maybe Text
 extractStarterConfig (GalleryDB _ _ _ _ sc _) = sc
 
-dbToGalListingParticle :: GalleryDB -> (Text, Bool, UTCTime)
-dbToGalListingParticle (GalleryDB gn _ _ gp _ da) = (gn, gp, da)
+dbToGalListingParticle :: GalleryDB -> (Text, Text, Bool, UTCTime)
+dbToGalListingParticle (GalleryDB gn tp _ gp _ da) = (gn, tp, gp, da)
 
 dbToSubListing :: SubmissionDB -> SubmissionListing
 dbToSubListing (SubmissionDB _ uploadName _ _ isSuppressed _ _ _ _ _) = SubmissionListing uploadName isSuppressed

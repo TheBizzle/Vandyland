@@ -16,6 +16,7 @@ data SubmissionListing
 data GalleryListing
   = GalleryListing {
     galleryName   :: Text
+  , template      :: Text
   , isPrescreened :: Bool
   , numWaiting    :: Int
   , numApproved   :: Int
