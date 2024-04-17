@@ -25,7 +25,7 @@ import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(S
 routes :: [(ByteString, Snap ())]
 routes = [ ("echo/:param"                                     ,      ac POST   handleEchoData)
          , ("new-session/:template"                           ,      ac POST   handleNewSession)
-         , ("new-session/:template/:session-id"               , wc $ ac POST   handleNewSessionWithParams)
+         , ("new-session/:template/:session-id"               ,      ac POST   handleNewSessionWithParams)
          , ("uploads"                                         ,      ac POST   handleUpload)
          , ("file-uploads"                                    ,      ac POST   handleUploadFile)
          , ("uploads/:session-id/:item-id"                    , wc $ ac GET    handleDownloadItem)
@@ -61,11 +61,18 @@ handleNewSession = handle1 (Arg "template" nonEmpty) $ \template ->
     _handleNewSessionWithParams template name False Nothing Nothing
 
 handleNewSessionWithParams :: Snap ()
-handleNewSessionWithParams =
-  handle5 (Arg "gets-prescreened" asBool, Arg "config" free, Arg "template" nonEmpty, Arg "token" asUUID, Arg "session-id" nonEmpty) $ \(gps, config, template, token, sid) ->
-    _handleNewSessionWithParams template sid gps (genConfigMaybe config) $ Just token
+handleNewSessionWithParams = withFileUploads $ \fileMap ->
+  do
+    gps         <- getParamVM fileMap $ Arg "gets-prescreened" asBool
+    template    <- getParamVM fileMap $ Arg "template"         nonEmpty
+    token       <- getParamVM fileMap $ Arg "token"            asUUID
+    sid         <- getParamVM fileMap $ Arg "session-id"       nonEmpty
+    let config   = map genConfigMaybe $ lookupParam "config" fileMap
+    let tupleV = (,,,,) <$> template <*> sid <*> gps <*> config <*> (map Just token)
+    bimapM_ notifyBadParams (uncurry5 _handleNewSessionWithParams) tupleV
   where
-    genConfigMaybe config = if config == "" then Nothing else Just config
+    lookupParam param fileMap = maybe (_Failure # [param]) (_Success #) $ Map.lookup param fileMap
+    genConfigMaybe config     = if config == "" then Nothing else Just config
 
 handleListGalleries :: Snap ()
 handleListGalleries = handle1 (Arg "token" asUUID) $

@@ -28,16 +28,9 @@ window.submitToInit = function(e) {
   let postData = new FormData();
   postData.append("gets-prescreened", formData.get("galleryMode") === "prescreen");
   postData.append("token"           , window.localStorage.getItem("mod-token"));
-  postData.append("config"          , formData.get("galleryConfig"));
+  postData.append("config"          , new Blob([formData.get("galleryConfig")], { type: "text/plain" }), "config");
 
-  let removeCRs = (str) => str.replace(/\r/g, '');
-
-  let queryString =
-    Array.from(postData.entries()).map(
-      ([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))
-    ).join("&");
-
-  fetch(`/new-session/${template}/${sessionID}`, { method: "POST", body: queryString, headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(
+  fetch(`/new-session/${template}/${sessionID}`, { method: "POST", body: postData }).then(
     (response) => {
       if (!response.ok)
         response.text().then((reason) => alert(`Could not create new session.  ${reason}`));
