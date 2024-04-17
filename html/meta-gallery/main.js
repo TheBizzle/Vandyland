@@ -35,8 +35,10 @@ window.submitToInit = function(e) {
       if (!response.ok)
         response.text().then((reason) => alert(`Could not create new session.  ${reason}`));
       else {
-        document.getElementById("sesh-name-input").value = "";
-        document.getElementById("submit-init").disabled  = true;
+        document.getElementById("sesh-name-input"   ).value    = "";
+        document.getElementById("starter-code-inner").value    = "";
+        document.getElementById("starter-code"      ).value    = "";
+        document.getElementById("submit-init"       ).disabled = true;
       }
     }
   )
