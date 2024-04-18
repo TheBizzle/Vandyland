@@ -3,9 +3,10 @@ window.submitToView = function(e) {
   e.preventDefault();
   let viewForm  = document.getElementById("view-form");
   let selection = viewForm.querySelector(".gallery-view-item.selected");
+  let data      = selection.dataset;
   switch (e.submitter.id) {
     case "submit-student":
-      window.open(`/html/basic/#${selection.dataset.sessionName}`, "_blank");
+      window.open(`/html/${data.template}/#${data.sessionName}`, "_blank");
       break;
     case "submit-moderator":
       window.open(`/html/basic/moderation/#${selection.dataset.sessionName}`, "_blank");
