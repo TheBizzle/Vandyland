@@ -120,20 +120,27 @@ let genSortingFn = () => {
 
   let sortingType = document.getElementById("sorting-type").value;
 
-  switch (sortingType) {
-    case "Latest Initialization":
-      return ((a, b) => b.creationTime - a.creationTime);
-    case "Latest Submission":
-      return ((a, b) => b.lastSubTime - a.lastSubTime);
-    case "Alphabetical":
-      return ((a, b) => a.galleryName < b.galleryName ? -1 : 1);
-    case "Most Uploads":
-      return ((a, b) => b.uploadNames.length - a.uploadNames.length);
-    case "Most Waiting":
-      return ((a, b) => b.numWaiting - a.numWaiting);
-    default:
-      console.error(`Invalid sorting criteria: ${sortingType}`);
-  }
+  const f = (() => {
+    switch (sortingType) {
+      case "Latest Initialization":
+        return ((a, b) => b.creationTime - a.creationTime);
+      case "Latest Submission":
+        return ((a, b) => b.lastSubTime - a.lastSubTime);
+      case "Alphabetical":
+        return ((a, b) => a.galleryName === b.galleryName ? 0 : (a.galleryName < b.galleryName ? -1 : 1));
+      case "Most Uploads":
+        return ((a, b) => b.uploadNames.length - a.uploadNames.length);
+      case "Most Waiting":
+        return ((a, b) => b.numWaiting - a.numWaiting);
+      default:
+        console.error(`Invalid sorting criteria: ${sortingType}`);
+    }
+  })();
+
+  return (a, b) => {
+    const result = f(a, b);
+    return (result !== 0) ? result : (a.galleryName < b.galleryName ? -1 : 1);
+  };
 
 };
 
