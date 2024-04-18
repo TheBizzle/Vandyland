@@ -19,7 +19,7 @@ import System.Directory(getDirectoryContents)
 
 import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
 
-import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readStarterConfigFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission)
+import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readStarterConfigFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, readTemplateName, uniqueSessionName, writeComment, writeSubmission)
 import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(SubmissionSendable))
 
 routes :: [(ByteString, Snap ())]
@@ -28,6 +28,7 @@ routes = [ ("echo/:param"                                   ,      ac POST   han
          , ("new-session/:template/:session-id"             ,      ac POST   handleNewSessionWithParams)
          , ("uploads"                                       ,      ac POST   handleUpload)
          , ("file-uploads"                                  ,      ac POST   handleUploadFile)
+         , ("api/public/galleries/:session-id/template-name",      ac GET    handleGetTemplateName)
          , ("uploads/:session-id/:item-id"                  , wc $ ac GET    handleDownloadItem)
          , ("uploads/:session-id/:item-id/:token"           , wc $ ac GET    handleDownloadItemWithToken)
          , ("uploads/:session-id/:item-id/:token"           ,      ac DELETE handleSuppressItem)
@@ -214,6 +215,15 @@ handleSubmitComment =
       do
         liftIO $ writeComment comment uploadName sessionName author (UUID.fromText parent)
         writeText "" -- Necessary?
+
+handleGetTemplateName :: Snap ()
+handleGetTemplateName =
+  handle1 (Arg "session-id" nonEmpty) $ \(sid) ->
+    do
+      tNameMaybe <- liftIO $ readTemplateName sid
+      case tNameMaybe of
+        Nothing  -> failWith 404 $ writeText $ "No gallery with name '" <> sid <> "' was found."
+        (Just x) -> writeText x
 
 handleGetStarterConfig :: Snap ()
 handleGetStarterConfig =

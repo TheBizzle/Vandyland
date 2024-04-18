@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readStarterConfigFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
+module Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readStarterConfigFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, readTemplateName, registerNewSession, suppressSubmission, uniqueSessionName, writeComment, writeSubmission) where
 
 import Control.Monad.Logger(NoLoggingT, runNoLoggingT)
 import Control.Monad.Trans.Reader(ReaderT)
@@ -180,6 +180,12 @@ readSubmissionsLite sessionName tokenMaybe names = withDB $
     collectFulfilled (Fulfilled x) = [x]
     collectFulfilled _             = []
 
+readTemplateName :: Text -> IO (Maybe Text)
+readTemplateName sessionName = withDB $
+  do
+    entityMaybe <- selectFirst [GalleryDBGalleryName ==. (Text.toLower sessionName)] []
+    return $ map (entityVal >>> extractTemplateName) entityMaybe
+
 suppressSubmission :: Text -> Text -> UUID -> IO (PrivilegedActionResult ())
 suppressSubmission sessionName uploadName token = withDB $
   do
@@ -271,6 +277,9 @@ retrieveSubmission f givenTokenMaybe teacherTokenMaybe submission = withDB $
           Fulfilled $ f submission
         else
           NotAuthorized
+
+extractTemplateName :: GalleryDB -> Text
+extractTemplateName (GalleryDB _ tn _ _ _ _) = tn
 
 extractOwnerToken :: GalleryDB -> Maybe UUID
 extractOwnerToken (GalleryDB _ _ otm _ _ _) = otm >>= UUID.fromText
