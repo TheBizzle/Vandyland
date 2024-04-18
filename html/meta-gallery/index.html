@@ -13,11 +13,11 @@
     <div id="section-container">
 
       <div id="section-wrapper">
-        <button class="collapsible active" onclick="toggleCollapsible(this)">Create</button>
+        <button class="collapsible active ns" onclick="toggleCollapsible(this)">Create</button>
         <div id="create-gallery-section" class="collapsible-content section active">
           <form id="init-form">
             <input id="sesh-name-input" type="text" name="name" placeholder="Gallery Name" required><br>
-            <div id="modes-bin">
+            <div id="modes-bin" class="ns">
               <label id="norm-screen-bin" for="norm-screen-radio">
                 Unmoderated
                 <input type="radio" id="norm-screen-radio" name="galleryMode" value="normal" checked>
@@ -27,7 +27,7 @@
                 <input type="radio" id="prescreen-radio" name="galleryMode" value="prescreen">
               </label>
             </div>
-            <label>
+            <label class="ns">
               Template:
               <select id="gallery-template" name="galleryTemplate">
               </select>
@@ -40,24 +40,24 @@
       </div>
 
       <div id="section-wrapper">
-        <button id="approved-toggle" class="collapsible active" onclick="toggleCollapsible(this)">View</button>
+        <button id="approved-toggle" class="collapsible active ns" onclick="toggleCollapsible(this)">View</button>
         <div id="view-gallery-section" class="collapsible-content section active">
           <form id="view-form">
             <div id="view-list">
             </div>
             <div id="controls">
               <div id="details">
-                <div class="control-row"><span class="control-label">Name</span>:          <span id="control-name"         class="control-value">-</span></div>
-                <div class="control-row"><span class="control-label">Template</span>:      <span id="control-template"     class="control-value">-</span></div>
-                <div class="control-row"><span class="control-label">Uploads</span>:       <span id="control-uploads"      class="control-value">-</span></div>
-                <div class="control-row"><span class="control-label">Creation Date</span>: <span id="control-date"         class="control-value">-</span></div>
-                <div class="control-row"><span class="control-label">Num. Waiting</span>:   <span id="control-unmoderated" class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Name</span><span class="ns">:          </span><span id="control-name"        class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Template</span><span class="ns">:      </span><span id="control-template"    class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Uploads</span><span class="ns">:       </span><span id="control-uploads"     class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Creation Date</span><span class="ns">: </span><span id="control-date"        class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Num. Waiting</span><span class="ns">:  </span><span id="control-unmoderated" class="control-value">-</span></div>
                 <input id="submit-student"   type="submit" class="control-submitter" value="View as Student"   disabled>
                 <input id="submit-moderator" type="submit" class="control-submitter" value="View as Moderator" disabled>
               </div>
               <label id="sorting-hat">
-                <span id="sorting-label">Sort By</span>
-                <select id="sorting-type">
+                <span id="sorting-label" class="ns">Sort By</span>
+                <select id="sorting-type" class="ns">
                   <option>Latest Initialization</option>
                   <option>Latest Submission</option>
                   <option>Alphabetical</option>
@@ -74,7 +74,7 @@
 
     <div id="starter-modal" class="modal hidden">
       <div class="modal-content">
-        <div class="item-details-header">
+        <div class="item-details-header ns">
           <span class="close" onclick="hideModal()">&times;</span>
           <h2 id="item-header">Modify Starter JSON</h2>
         </div>
@@ -82,7 +82,7 @@
           <div class="item-details-content">
             <div class="item-column">
               <textarea id="starter-code-inner" contenteditable="true"></textarea>
-              <strong class="disjunction">-OR-</strong>
+              <strong class="disjunction ns">-OR-</strong>
               <input id="starter-code-file" type="file">
             </div>
             <div class="item-details-controls">
