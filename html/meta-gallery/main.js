@@ -38,6 +38,7 @@ window.submitToInit = function(e) {
         document.getElementById("sesh-name-input"   ).value    = "";
         document.getElementById("starter-code-inner").value    = "";
         document.getElementById("starter-code"      ).value    = "";
+        document.getElementById("starter-code-file" ).value    = null;
         document.getElementById("submit-init"       ).disabled = true;
       }
     }
