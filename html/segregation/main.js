@@ -17,6 +17,21 @@ window.onEnter = function(f) { return function(e) { if (e.keyCode === 13) { retu
 
 window.startSession = function(sessionName) {
 
+  fetch(`/api/public/galleries/${sessionName}/template-name`, { method: "GET" }).
+    then(
+      (response) => {
+        response.text().then(
+          (responseText) => {
+            if (response.status !== 200) {
+              alert(`Failed to lookup gallery '${sessionName}'.  Reason: ${responseText}`);
+            } else if (responseText !== "segregation") {
+              alert(`This gallery (${sessionName}) was made for the '${responseText}' activity, but this is the 'segregation' activity.  This gallery may not work correctly unless opened in the appropriate activity.`);
+            }
+          }
+        )
+      }
+    )
+
   let startup = function(sessionName) {
     setSessionName(sessionName);
     let token = window.localStorage.getItem("token")
