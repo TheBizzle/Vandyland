@@ -1,4 +1,4 @@
-window.startSession("segregation-test");
+window.startSession(decodeURIComponent(parent.location.hash.substring(1)));
 
 let modal = document.getElementById("item-details");
 
