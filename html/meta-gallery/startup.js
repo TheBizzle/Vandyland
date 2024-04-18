@@ -104,3 +104,6 @@ document.getElementById("item-save-button").onclick = function() {
 document.getElementById("sorting-type").addEventListener("change", (e) => {
   window.refreshSorting();
 });
+
+// On Esc, hide the modal
+document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideModal(); } });
