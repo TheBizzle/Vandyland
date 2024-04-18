@@ -15,16 +15,8 @@ let initForm = document.getElementById("init-form");
 initForm.addEventListener('keyup',  onEnter(submitToInit));
 initForm.addEventListener('submit', submitToInit);
 
-let submitStudent = document.getElementById("submit-student");
-submitStudent.disabled = true;
-
-let submitModerator = document.getElementById("submit-moderator");
-submitModerator.disabled = true;
-
-let submitInit = document.getElementById("submit-init");
-submitInit.disabled = true;
-
 document.getElementById("sesh-name-input").addEventListener('input', (e) => {
+  const submitInit = document.getElementById("submit-init");
   submitInit.disabled = e.target.value.length === 0;
 });
 
