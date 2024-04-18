@@ -132,6 +132,8 @@ let genSortingFn = () => {
         return ((a, b) => b.uploadNames.length - a.uploadNames.length);
       case "Most Waiting":
         return ((a, b) => b.numWaiting - a.numWaiting);
+      case "Template Name":
+        return ((a, b) => a.template === b.template ? 0 : (a.template < b.template ? -1 : 1));
       default:
         console.error(`Invalid sorting criteria: ${sortingType}`);
     }
