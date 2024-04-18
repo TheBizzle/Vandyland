@@ -9,7 +9,7 @@ window.submitToView = function(e) {
       window.open(`/html/${data.template}/#${data.sessionName}`, "_blank");
       break;
     case "submit-moderator":
-      window.open(`/html/basic/moderation/#${selection.dataset.sessionName}`, "_blank");
+      window.open(`/html/${data.template}/moderation/#${data.sessionName}`, "_blank");
       break;
     default:
       console.error(`Unknown submitter: ${e.submitter.name}`);
