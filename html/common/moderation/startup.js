@@ -31,7 +31,7 @@ window.showModal = function(sessionName, uploadName, metadata, data, imgSrc, isA
     document.getElementById("item-details").classList.remove("approved");
   }
 
-  document.getElementById("item-header"         ).innerText = metadata === null ? uploadName : uploadName + " by " + metadata;
+  document.getElementById("item-header"         ).innerText = metadata === null ? uploadName : uploadName + " by " + (metadata.uploader || "???");
   document.getElementById("item-details-image"  ).src       = imgSrc;
   document.getElementById("item-approve-button" ).onclick   = function() { window.approve(uploadName); };
   document.getElementById("item-reject-button"  ).onclick   = function() { window.reject( uploadName); };

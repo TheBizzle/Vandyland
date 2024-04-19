@@ -52,19 +52,21 @@ let syncUnapproved = function() {
     let containerPromises =
       entries.map(function(entry) {
 
+        let metadata = JSON.parse(entry);
+
         let img = document.createElement("img");
         img.classList.add("upload-image");
         img.src = entry.base64Image;
         img.onclick = function() {
           fetch(window.thisDomain + "/uploads/"  + getSessionName() + "/" + entry.uploadName).then(x => x.text()).then(
             (data) =>
-              showModal(getSessionName(), entry.uploadName, entry.metadata, data, entry.base64Image, false)
+              showModal(getSessionName(), entry.uploadName, metadata, data, entry.base64Image, false)
           )
         };
 
         let label       = document.createElement("span");
         let boldStr     = function(str) { return '<span style="font-weight: bold;">' + str + '</span>' };
-        label.innerHTML = entry.metadata === null ? boldStr(entry.uploadName) : boldStr(entry.uploadName) + " by " + boldStr(entry.metadata);
+        label.innerHTML = metadata === null ? boldStr(entry.uploadName) : boldStr(entry.uploadName) + " by " + boldStr(metadata.uploader || "???");
         label.classList.add("upload-label")
 
         let container = document.createElement("div")
@@ -159,19 +161,27 @@ let syncApproved = function() {
     let containerPromises =
       entries.map(function(entry) {
 
+        let metadata = null;
+
+        try {
+          metadata = JSON.parse(entry.metadata);
+        } catch {
+          metadata = entry.metadata;
+        }
+
         let img = document.createElement("img");
         img.classList.add("upload-image");
         img.src = entry.base64Image;
         img.onclick = function() {
           fetch(window.thisDomain + "/uploads/"  + getSessionName() + "/" + entry.uploadName).then(x => x.text()).then(
             (data) =>
-              showModal(getSessionName(), entry.uploadName, entry.metadata, data, entry.base64Image, true)
+              showModal(getSessionName(), entry.uploadName, metadata, data, entry.base64Image, true)
           )
         };
 
         let label       = document.createElement("span");
         let boldStr     = function(str) { return '<span style="font-weight: bold;">' + str + '</span>' };
-        label.innerHTML = entry.metadata === null ? boldStr(entry.uploadName) : boldStr(entry.uploadName) + " by " + boldStr(entry.metadata);
+        label.innerHTML = metadata === null ? boldStr(entry.uploadName) : boldStr(entry.uploadName) + " by " + boldStr(metadata.uploader || "???");
         label.classList.add("upload-label")
 
         let container = document.createElement("div")
