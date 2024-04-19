@@ -97,5 +97,9 @@ document.getElementById("sorting-type").addEventListener("change", (e) => {
   window.refreshSorting();
 });
 
+document.getElementById("sesh-name-input").addEventListener("input", (e) => {
+  e.target.value = e.target.value.toLowerCase();
+});
+
 // On Esc, hide the modal
 document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideModal(); } });
