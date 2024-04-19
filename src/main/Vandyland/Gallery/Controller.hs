@@ -24,6 +24,7 @@ import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(S
 
 routes :: [(ByteString, Snap ())]
 routes = [ ("echo/:param"                                   ,      ac POST   handleEchoData)
+         , ("api/public/version"                            ,      ac GET    handleAPIVersion)
          , ("new-session/:template"                         ,      ac POST   handleNewSession)
          , ("new-session/:template/:session-id"             ,      ac POST   handleNewSessionWithParams)
          , ("uploads"                                       ,      ac POST   handleUpload)
@@ -241,6 +242,9 @@ handleGetGalleryTypes =
     paths <- liftIO $ getDirectoryContents "html"
     let truePaths = List.filter (not . (flip elem) [".", "..", "common", "meta-gallery"]) paths
     (encodeText &> (succeed "application/json")) truePaths
+
+handleAPIVersion :: Snap ()
+handleAPIVersion = writeText "1.2.0"
 
 _handleNewSessionWithParams :: Text -> Text -> Bool -> Maybe Text -> Maybe UUID.UUID -> Snap ()
 _handleNewSessionWithParams template name getsPrescreened config token =
