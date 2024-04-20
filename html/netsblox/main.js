@@ -33,7 +33,9 @@ window.startSession = function(sessionName) {
     )
 
   let startup = function(sessionName) {
+
     setSessionName(sessionName);
+
     let token = window.localStorage.getItem("token")
     if (token !== null) {
       uploadInterval = setInterval(sync, syncRate);
@@ -45,6 +47,24 @@ window.startSession = function(sessionName) {
         }
       );
     }
+
+    fetch(`${window.thisDomain}/starter-config/${sessionName}`, { method: "GET" }).then(
+      (res) => {
+        if (res.status === 200) {
+          res.text().then(
+            (starterConfig) => {
+              const parcel =
+                { content: starterConfig
+                , name: "starter"
+                , type: "import-blocks"
+                };
+              parent.postMessage(parcel, "*");
+            }
+          );
+        }
+      }
+    )
+
   };
 
   if (sessionName === undefined) {

@@ -59,15 +59,45 @@
   </body>
   <script type="text/javascript">
 
+    let netsHasLoaded    = false;
+    let waitingData      = null;
+    let peskyLoop        = null;
+
     const netsFrame = document.getElementById("nets_frame");
 
     netsFrame.addEventListener("load", function() {
-      fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
-        let hash = decodeURIComponent(window.location.hash.slice(1));
-        netsFrame.contentWindow.postMessage({ key: "domain"      , value: window.thisDomain, type: "set-variable" }, "*");
-        netsFrame.contentWindow.postMessage({ key: "locationHash", value: hash             , type: "set-variable" }, "*");
-        netsFrame.contentWindow.postMessage({ content: blocks, name: "New project", type: "import" }, "*");
-      });
+
+      const onResponse = (e) => {
+        if (e.data.type === "reply") {
+
+          clearInterval(peskyLoop);
+          window.removeEventListener("message", onResponse);
+
+          let hash = decodeURIComponent(window.location.hash.slice(1));
+          netsFrame.contentWindow.postMessage({ key: "domain"      , value: window.thisDomain, type: "set-variable" }, "*");
+          netsFrame.contentWindow.postMessage({ key: "locationHash", value: hash             , type: "set-variable" }, "*");
+
+          if (waitingData === null) {
+            fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
+              netsFrame.contentWindow.postMessage({ content: blocks, name: "New project", type: "import" }, "*");
+            });
+          } else {
+            netsFrame.contentWindow.postMessage(waitingData, "*");
+            waitingData = null;
+          }
+
+          netsHasLoaded = true;
+
+        }
+      };
+
+      window.addEventListener("message", onResponse);
+
+      peskyLoop =
+        setInterval(() => {
+          netsFrame.contentWindow.postMessage({ type: "get-username" }, "*");
+        }, 50);
+
     });
 
     netsFrame.src = "https://dev.netsblox.org/" + window.location.hash;
@@ -76,7 +106,11 @@
       switch (event.data.type) {
         case "import-blocks":
           event.data.type = "import";
-          netsFrame.contentWindow.postMessage(event.data, "*");
+          if (netsHasLoaded) {
+            netsFrame.contentWindow.postMessage(event.data, "*");
+          } else {
+            waitingData = event.data;
+          }
           break;
         case "show-modal":
           showModal(event.data);
