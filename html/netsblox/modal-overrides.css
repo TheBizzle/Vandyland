@@ -10,22 +10,22 @@
 }
 
 .item-details-button {
-  font-size: 30px;
+  font-size: 28px;
   height:    40px;
   width:     250px;
 }
 
 .item-details-image {
-  height: 100%;
+  border: 1px solid gray;
+  height: 240px;
 }
 
 .item-image-wrapper {
-  max-height: 45%;
-  max-width:  100%;
+  height: 250px;
 }
 
 .modal-content {
   display:        flex;
   flex-direction: column;
-  height:         75%;
+  width:          50%;
 }

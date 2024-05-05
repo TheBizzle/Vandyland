@@ -46,7 +46,7 @@ let addCommentTo = function(commentsElem) { return function(comment) {
 
 window.showModal = function({ sessionName, uploadName, metadata, data, comments, image, commentURL }) {
 
-  document.getElementById("item-header"         ).innerText = metadata.uploader === null ? uploadName : uploadName + " by " + metadata.uploader;
+  document.getElementById("item-header"         ).innerText = metadata.uploader === null ? "Anonymous project" : "Project by " + metadata.uploader;
   document.getElementById("item-details-image"  ).src       = image;
   document.getElementById("item-download-button").onclick   = function() { parent.postMessage({ content: data, name: uploadName, type: "import-blocks" }, "*"); hideModal(); }
 
@@ -84,19 +84,6 @@ document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideMod
 window.clearCommentFrom = function(id) {
   let elem = document.getElementById(id);
   elem.querySelector('.comment-box').innerText = "";
-};
-
-window.makeQueryString = function(obj, formElem) {
-
-  let removeCRs = (str) => str.replace(/\r/g, '');
-
-  let formData = new FormData(formElem);
-  for (let key in (obj || {})) {
-    formData.set(key, obj[key]);
-  }
-
-  return Array.from(formData.entries()).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))).join("&");
-
 };
 
 window.submitCommentFrom = function(id) {

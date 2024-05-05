@@ -1,21 +1,60 @@
 <html>
+
   <head>
+    <title>Gallery for NetsBlox Classroom Activities</title>
     <link href="/html/common/modal.css" rel="stylesheet">
     <link href="modal-overrides.css"    rel="stylesheet">
   </head>
+
   <script src="/html/common/globals.js"></script>
+
+  <script src="/html/common/jquery-latest.js"></script>
+  <script src="/html/common/jquery-ui-latest.js"></script>
+  <script src="/html/common/jquery.layout-latest.js"></script>
+
+  <link href="/html/common/material-icons.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/html/common/materialize.min.css">
+  <script src="/html/common/materialize.min.js"></script>
+
+  <script src="https://editor.netsblox.org/embedded-api.js"></script>
+
   <body>
 
-    <div style="display: flex; flex-direction: row; height: 100%; width: 100%;">
-      <iframe id="gallery_frame" src="Vandyland.html" height="100%" width="20%" style="border: 2px solid black;"></iframe>
-      <iframe id="nets_frame"    src=""               height="100%" width="80%" style="border: 2px solid black; margin-left: -2px;"></iframe>
+    <iframe class="ui-layout-west"   id="gallery_frame" src="Vandyland.html" height="100%" width="20%" style="border: 2px solid black;"></iframe>
+    <iframe class="ui-layout-center" id="nets_frame"    src=""               height="100%" width="80%" style="border: 2px solid black; margin-left: -2px;" allow="geolocation"></iframe>
+
+    <div id="publish-info" class="modal">
+      <div class="modal-content">
+        <h4>Publish to Gallery</h4>
+        <div class="row" style="width: 100%">
+          <form class="col s12">
+            <div class="row">
+              <div class="input-field col s12">
+                <input id="username" type="text" class="validate">
+                <label for="username">Username</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s12">
+                <textarea id="description" type="text" class="materialize-textarea validate"></textarea>
+                <label for="description">Description</label>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a class="modal-action modal-close waves-effect waves-green btn-flat cancel-btn">Cancel</a>
+        <a class="modal-action modal-close waves-effect waves-green btn-flat publish-btn">Publish</a>
+      </div>
     </div>
 
     <div id="item-details" class="our-modal hidden">
       <div class="modal-content">
         <div class="item-details-header">
           <span class="close" onclick="hideModal()">&times;</span>
-          <h2 id="item-header"></h2>
+          <h4 id="item-header"></h4>
         </div>
         <div id="item-details-body" class="item-details-body">
           <div class="item-details-content">
@@ -56,74 +95,16 @@
       </div>
     </template>
 
+    <div>
+      <a id="gallerybutton" class="btn-floating btn-large waves-effect waves-light green" style="position: absolute; bottom: 24px; left: 8px;">
+        <i class="material-icons" onclick="onPublishClicked()">add_a_photo</i>
+      </a>
+    </div>
+
   </body>
-  <script type="text/javascript">
 
-    let netsHasLoaded    = false;
-    let waitingData      = null;
-    let peskyLoop        = null;
-
-    const netsFrame = document.getElementById("nets_frame");
-
-    netsFrame.addEventListener("load", function() {
-
-      const onResponse = (e) => {
-        if (e.data.type === "reply") {
-
-          clearInterval(peskyLoop);
-          window.removeEventListener("message", onResponse);
-
-          let hash = decodeURIComponent(window.location.hash.slice(1));
-          netsFrame.contentWindow.postMessage({ key: "domain"      , value: window.thisDomain, type: "set-variable" }, "*");
-          netsFrame.contentWindow.postMessage({ key: "locationHash", value: hash             , type: "set-variable" }, "*");
-
-          if (waitingData === null) {
-            fetch('./postwins.xml').then((response) => response.text()).then(function(blocks) {
-              netsFrame.contentWindow.postMessage({ content: blocks, name: "New project", type: "import" }, "*");
-            });
-          } else {
-            netsFrame.contentWindow.postMessage(waitingData, "*");
-            waitingData = null;
-          }
-
-          netsHasLoaded = true;
-
-        }
-      };
-
-      window.addEventListener("message", onResponse);
-
-      peskyLoop =
-        setInterval(() => {
-          netsFrame.contentWindow.postMessage({ type: "get-username" }, "*");
-        }, 50);
-
-    });
-
-    netsFrame.src = "https://dev.netsblox.org/" + window.location.hash;
-
-    let receiveMessage = function(event) {
-      switch (event.data.type) {
-        case "import-blocks":
-          event.data.type = "import";
-          if (netsHasLoaded) {
-            netsFrame.contentWindow.postMessage(event.data, "*");
-          } else {
-            waitingData = event.data;
-          }
-          break;
-        case "show-modal":
-          showModal(event.data);
-          break;
-        default:
-          console.log("Lord Octopus: Ignoring message of type '" + event.data.type + "'");
-      }
-    }
-
-    window.addEventListener("message", receiveMessage, false);
-
-  </script>
-
+  <script src="jq-stuff.js"></script>
+  <script src="init.js"></script>
   <script src="modal.js"></script>
 
 </html>

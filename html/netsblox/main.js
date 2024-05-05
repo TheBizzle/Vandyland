@@ -30,13 +30,14 @@ window.startSession = function(sessionName) {
           }
         )
       }
-    )
+    );
 
   let startup = function(sessionName) {
 
     setSessionName(sessionName);
 
     let token = window.localStorage.getItem("token")
+
     if (token !== null) {
       uploadInterval = setInterval(sync, syncRate);
     } else {
@@ -63,7 +64,7 @@ window.startSession = function(sessionName) {
           );
         }
       }
-    )
+    );
 
   };
 

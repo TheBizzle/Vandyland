@@ -6,11 +6,13 @@
 }
 
 .heading {
-  text-align: center;
+  text-align:  center;
+  font-family: sans-serif;
 }
 
 .heading {
   overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 #main-content {
@@ -19,8 +21,8 @@
 }
 
 .upload-container {
-  height:        initial;
-  width:         100%;
+  height: initial;
+  width:  100%;
 }
 
 .upload-image {
