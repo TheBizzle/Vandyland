@@ -2,8 +2,8 @@
 
   <head>
     <title>Gallery for NetsBlox Classroom Activities</title>
-    <link href="/html/common/modal.css" rel="stylesheet">
-    <link href="modal-overrides.css"    rel="stylesheet">
+    <link href="/html/common/modal/main.css" rel="stylesheet">
+    <link href="./modal-overrides.css"       rel="stylesheet">
   </head>
 
   <script src="/html/common/globals.js"></script>
@@ -12,9 +12,8 @@
   <script src="/html/common/jquery-ui-latest.js"></script>
   <script src="/html/common/jquery.layout-latest.js"></script>
 
-  <link href="/html/common/material-icons.css" rel="stylesheet">
-
-  <link rel="stylesheet" href="/html/common/materialize.min.css">
+  <link href="/html/common/material-icons.css"  rel="stylesheet">
+  <link href="/html/common/materialize.min.css" rel="stylesheet">
   <script src="/html/common/materialize.min.js"></script>
 
   <script src="https://editor.netsblox.org/embedded-api.js"></script>
@@ -51,7 +50,7 @@
     </div>
 
     <div id="item-details" class="our-modal hidden">
-      <div class="modal-content">
+      <div class="our-modal-content">
         <div class="item-details-header">
           <span class="close" onclick="hideModal()">&times;</span>
           <h4 id="item-header"></h4>
@@ -105,6 +104,6 @@
 
   <script src="jq-stuff.js"></script>
   <script src="init.js"></script>
-  <script src="modal.js"></script>
+  <script src="/html/common/modal/main.js"></script>
 
 </html>

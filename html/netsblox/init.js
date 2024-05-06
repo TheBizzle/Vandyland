@@ -168,7 +168,7 @@ async function publishProject(username, description) {
   data.append(  "metadata",  metadata);
   data.append("session-id", sessionID);
 
-  console.log("publishing....", data);
+  console.log("publishing...", data);
 
   const response = await fetch("/file-uploads", { method: "POST", body: data });
 

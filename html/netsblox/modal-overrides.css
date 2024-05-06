@@ -24,7 +24,7 @@
   height: 250px;
 }
 
-.modal-content {
+.our-modal-content {
   display:        flex;
   flex-direction: column;
   width:          50%;
