@@ -77,12 +77,55 @@ document.getElementById("starter-code-file").oninput = function(e) {
   const elem = e.target;
   const file = elem.files[0];
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    document.getElementById("starter-code-inner").value = reader.result;
+  const mode = document.querySelector('input[name="starter-mode"]:checked').value;
+
+  const trueReader = new FileReader();
+  trueReader.onloadend = (event) => {
+    document.getElementById("starter-code-inner").value = event.target.result;
   }
 
-  reader.readAsText(file);
+  switch (mode) {
+
+    case "Plain Text":
+      trueReader.readAsText(file);
+      break;
+
+    case "Base64":
+      trueReader.readAsDataURL(file);
+      break;
+
+    case "Auto":
+
+      const reader = new FileReader();
+
+      reader.onloadend = (e) => {
+
+        const arr   = new Uint8Array(e.target.result);
+        let isASCII = true;
+
+        for (let i = 0; i < arr.length; i++) {
+          if (arr[i] > 127) {
+            isASCII = false;
+            break;
+          }
+        }
+
+        if (isASCII) {
+          trueReader.readAsText(file);
+        } else {
+          trueReader.readAsDataURL(file);
+        }
+
+      };
+
+      reader.readAsArrayBuffer(file);
+
+      break;
+
+    default:
+      console.warn(`Unknown reading mode: ${mode}`);
+  }
+
 
 };
 
@@ -103,3 +146,15 @@ document.getElementById("sesh-name-input").addEventListener("input", (e) => {
 
 // On Esc, hide the modal
 document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideModal(); } });
+
+document.getElementById("mode-auto").addEventListener("change", (e) => {
+  document.getElementById("mode-value").innerText = "Auto (-)";
+});
+
+document.getElementById("mode-text").addEventListener("change", (e) => {
+  document.getElementById("mode-value").innerText = "Plain Text";
+});
+
+document.getElementById("mode-base64").addEventListener("change", (e) => {
+  document.getElementById("mode-value").innerText = "Base64";
+});

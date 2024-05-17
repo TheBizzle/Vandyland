@@ -34,6 +34,24 @@
   grid-area:      modes;
 }
 
+#mode-column {
+  align-items:    center;
+  display:        flex;
+  flex-direction: column;
+  font-size:      32px;
+  gap:            10px;
+}
+
+#mode-label {
+  font-weight: bold;
+}
+
+#mode-row {
+  display:        flex;
+  flex-direction: row;
+  gap:            36px;
+}
+
 #sesh-name-input {
   grid-area: name;
   margin:    4px 0 8px 0;
@@ -163,11 +181,6 @@ form, input, select {
   display:        flex;
   flex-direction: column;
   gap:            10px;
-}
-
-.disjunction {
-  align-self: center;
-  font-size:  30px;
 }
 
 .collapsible {

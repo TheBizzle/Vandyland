@@ -83,8 +83,23 @@
           <div class="item-details-content">
             <div class="item-column">
               <textarea id="starter-code-inner" contenteditable="true"></textarea>
-              <strong class="disjunction ns">-OR-</strong>
-              <input id="starter-code-file" type="file">
+              <fieldset id="mode-column" class="ns">
+                <div>
+                  <span id="mode-label">File Encoding</span>: <span id="mode-value">Auto (-)</span>
+                </div>
+                <div id="mode-row">
+                  <label>Auto
+                    <input type="radio" id="mode-auto" name="starter-mode" value="Auto" checked>
+                  </label>
+                  <label>Plain Text
+                    <input type="radio" id="mode-text" name="starter-mode" value="Plain Text">
+                  </label>
+                  <label>Base64
+                    <input type="radio" id="mode-base64" name="starter-mode" value="Base64">
+                  </label>
+                </div>
+                <input id="starter-code-file" type="file">
+              </fieldset>
             </div>
             <div class="item-details-controls">
               <input id="item-save-button" class="item-details-button" type="button" value="Save">
