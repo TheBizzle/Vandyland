@@ -52,7 +52,13 @@ let syncUnapproved = function() {
     let containerPromises =
       entries.map(function(entry) {
 
-        let metadata = JSON.parse(entry);
+        let metadata = null;
+
+        try {
+          metadata = JSON.parse(entry.metadata);
+        } catch {
+          metadata = entry.metadata;
+        }
 
         let img = document.createElement("img");
         img.classList.add("upload-image");
