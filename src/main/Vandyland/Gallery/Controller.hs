@@ -61,18 +61,19 @@ handleNewSession :: Snap ()
 handleNewSession = handle1 (Arg "template" nonEmpty) $ \template ->
   do
     name <- liftIO $ uniqueSessionName
-    _handleNewSessionWithParams template name False Nothing Nothing
+    _handleNewSessionWithParams (template, name, False, Nothing, "", Nothing)
 
 handleNewSessionWithParams :: Snap ()
 handleNewSessionWithParams = withFileUploads $ \fileMap ->
   do
-    gps         <- getParamVM fileMap $ Arg "gets-prescreened" asBool
-    template    <- getParamVM fileMap $ Arg "template"         nonEmpty
-    token       <- getParamVM fileMap $ Arg "token"            asUUID
-    sid         <- getParamVM fileMap $ Arg "session-id"       nonEmpty
+    gps      <- getParamVM fileMap $ Arg "gets-prescreened" asBool
+    template <- getParamVM fileMap $ Arg "template"         nonEmpty
+    token    <- getParamVM fileMap $ Arg "token"            asUUID
+    sid      <- getParamVM fileMap $ Arg "session-id"       nonEmpty
+    desc     <- getParamVM fileMap $ Arg "description"      free
     let config   = map genConfigMaybe $ lookupParam "config" fileMap
-    let tupleV = (,,,,) <$> template <*> sid <*> gps <*> config <*> (map Just token)
-    bimapM_ notifyBadParams (uncurry5 _handleNewSessionWithParams) tupleV
+    let tupleV = (,,,,,) <$> template <*> sid <*> gps <*> config <*> desc <*> (map Just token)
+    bimapM_ notifyBadParams _handleNewSessionWithParams tupleV
   where
     lookupParam param fileMap = maybe (_Failure # [param]) (_Success #) $ Map.lookup param fileMap
     genConfigMaybe config     = if config == "" then Nothing else Just config
@@ -246,10 +247,10 @@ handleGetGalleryTypes =
 handleAPIVersion :: Snap ()
 handleAPIVersion = writeText "1.2.0"
 
-_handleNewSessionWithParams :: Text -> Text -> Bool -> Maybe Text -> Maybe UUID.UUID -> Snap ()
-_handleNewSessionWithParams template name getsPrescreened config token =
+_handleNewSessionWithParams :: (Text, Text, Bool, Maybe Text, Text, Maybe UUID.UUID) -> Snap ()
+_handleNewSessionWithParams (template, name, getsPrescreened, config, desc, token) =
   do
-    wasSuccessful <- liftIO $ registerNewSession template name getsPrescreened config token
+    wasSuccessful <- liftIO $ registerNewSession template name getsPrescreened config desc token
     if wasSuccessful then
       writeText name
     else

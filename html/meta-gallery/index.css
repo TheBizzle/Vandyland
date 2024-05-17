@@ -18,11 +18,18 @@
 #init-form {
   align-items:         center;
   display:             grid;
-  grid-template-areas: "name  name  name   name   template template template"
-                       "name  name  name   name   template template template"
-                       "modes modes modes  modes  config   config   config"
-                       ".     .     submit submit submit   .        ."
-                       ".     .     submit submit submit   .        .";
+  grid-auto-rows:      20px;
+  grid-template-areas:
+  "name     name     name     name     desc     desc     desc"
+  "name     name     name     name     desc     desc     desc"
+  "modes    modes    modes    modes    desc     desc     desc"
+  "modes    modes    modes    modes    config   config   config"
+  "template template template template config   config   config"
+  "template template template template config   config   config"
+  ".        .        submit   submit   submit   .        ."
+  ".        .        submit   submit   submit   .        ."
+  ".        .        submit   submit   submit   .        ."
+  ".        .        submit   submit   submit   .        .";
   margin:              15px 25px 30px 25px;
   row-gap:             10px;
   width:               100%;
@@ -71,11 +78,18 @@
   grid-area: template;
 }
 
+#desc-button {
+  align-self: stretch;
+  grid-area:  desc;
+}
+
 #starter-button {
-  grid-area: config;
+  align-self: stretch;
+  grid-area:  config;
 }
 
 #submit-init {
+  font-size:  54px;
   grid-area:  submit;
   margin-top: 12px;
   height:     100%;
@@ -84,6 +98,10 @@
 
 #norm-screen-radio {
   margin-right: 20px;
+}
+
+#description {
+  display: none;
 }
 
 #starter-code {
@@ -142,6 +160,15 @@
 
 #sorting-type {
   width: 100%;
+}
+
+#description-inner {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size:   24px;
+  resize:      none;
+  white-space: nowrap;
+  height:      300px;
+  width:       100%;
 }
 
 #starter-code-inner {

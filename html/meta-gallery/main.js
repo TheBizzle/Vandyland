@@ -30,12 +30,15 @@ window.submitToInit = function(e) {
   postData.append("gets-prescreened", formData.get("galleryMode") === "prescreen");
   postData.append("token"           , window.localStorage.getItem("mod-token"));
   postData.append("config"          , new Blob([formData.get("galleryConfig")], { type: "text/plain" }), "config");
+  postData.append("description"     , formData.get("description"));
 
   fetch(`/new-session/${template}/${sessionID}`, { method: "POST", body: postData }).then(
     (response) => {
       if (!response.ok)
         response.text().then((reason) => alert(`Could not create new session.  ${reason}`));
       else {
+        document.getElementById("description"       ).value    = "";
+        document.getElementById("description-inner" ).value    = "";
         document.getElementById("sesh-name-input"   ).value    = "";
         document.getElementById("starter-code-inner").value    = "";
         document.getElementById("starter-code"      ).value    = "";
@@ -65,7 +68,7 @@ let render = function(values) {
   let sortedValues = values.sort(genSortingFn());
 
   sortedValues.forEach(({ creationTime, galleryName, template, isPrescreened
-                        , lastSubTime, numWaiting, uploadNames }) => {
+                        , description, lastSubTime, numWaiting, uploadNames }) => {
 
     let templateHTML = document.getElementById("gallery-view-template");
     let gView        = document.importNode(templateHTML.content, true).querySelector(".gallery-view-item");
@@ -75,6 +78,7 @@ let render = function(values) {
 
     gView.dataset.creationTime  = creationTime;
     gView.dataset.template      = template;
+    gView.dataset.description   = description;
     gView.dataset.isPrescreened = isPrescreened;
     gView.dataset.lastSubTime   = lastSubTime;
     gView.dataset.numUploads    = uploadNames.length;
@@ -104,6 +108,8 @@ let render = function(values) {
       document.getElementById("control-uploads"    ).innerText = uploadNames.length;
       document.getElementById("control-date"       ).innerText = dateString;
       document.getElementById("control-unmoderated").innerText = isPrescreened ? numWaiting : "N/A";
+      document.getElementById("control-description").innerText = "(hover)";
+      document.getElementById("control-description").title     = description;
 
       document.getElementById("submit-student"  ).disabled  = false;
       document.getElementById("submit-moderator").disabled  = !isPrescreened;

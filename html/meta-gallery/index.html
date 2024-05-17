@@ -27,11 +27,15 @@
                 <input type="radio" id="prescreen-radio" name="galleryMode" value="prescreen">
               </label>
             </div>
-            <label class="ns">
-              Template:
-              <select id="gallery-template" name="galleryTemplate">
-              </select>
-            </label>
+            <div id="gallery-template-bin">
+              <label class="ns">
+                Template:
+                <select id="gallery-template" name="galleryTemplate">
+                </select>
+              </label>
+            </div>
+            <input id="desc-button" type="button" value="Add Description" onclick="showDescModal()">
+            <textarea id="description" name="description"></textarea>
             <input id="starter-button" type="button" value="Add Starter" onclick="showStarterModal()">
             <textarea id="starter-code" name="galleryConfig"></textarea>
             <input id="submit-init" type="submit" value="Create" disabled>
@@ -52,6 +56,7 @@
                 <div class="control-row"><span class="control-label">Uploads</span><span class="ns">:       </span><span id="control-uploads"     class="control-value">-</span></div>
                 <div class="control-row"><span class="control-label">Creation Date</span><span class="ns">: </span><span id="control-date"        class="control-value">-</span></div>
                 <div class="control-row"><span class="control-label">Num. Waiting</span><span class="ns">:  </span><span id="control-unmoderated" class="control-value">-</span></div>
+                <div class="control-row"><span class="control-label">Description</span><span class="ns">:   </span><span id="control-description" class="control-value ns">-</span></div>
                 <input id="submit-student"   type="submit" class="control-submitter" value="View as Student"   disabled>
                 <input id="submit-moderator" type="submit" class="control-submitter" value="View as Moderator" disabled>
               </div>
@@ -73,10 +78,28 @@
 
     </div>
 
+    <div id="description-modal" class="our-modal hidden">
+      <div class="our-modal-content">
+        <div class="item-details-header ns">
+          <span class="close" onclick="hideDescModal()">&times;</span>
+          <h2>Modify Description</h2>
+        </div>
+        <div class="item-details-body">
+          <div class="item-details-content">
+            <textarea id="description-inner" contenteditable="true"></textarea>
+            <div class="item-details-controls">
+              <input id="desc-save-button" class="item-details-button" type="button" value="Save">
+            </div>
+          </div>
+        </div>
+        <div class="item-details-footer"></div>
+      </div>
+    </div>
+
     <div id="starter-modal" class="our-modal hidden">
       <div class="our-modal-content">
         <div class="item-details-header ns">
-          <span class="close" onclick="hideModal()">&times;</span>
+          <span class="close" onclick="hideStarterModal()">&times;</span>
           <h2 id="item-header">Modify Starter JSON</h2>
         </div>
         <div id="item-details-body" class="item-details-body">
@@ -102,7 +125,7 @@
               </fieldset>
             </div>
             <div class="item-details-controls">
-              <input id="item-save-button" class="item-details-button" type="button" value="Save">
+              <input id="code-save-button" class="item-details-button" type="button" value="Save">
             </div>
           </div>
         </div>

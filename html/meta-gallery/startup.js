@@ -54,6 +54,24 @@ fetch(`${window.thisDomain}/gallery-types`, { method: "GET" }).then((x) => x.jso
   }
 )
 
+let originalDesc = null;
+
+window.showDescModal = function() {
+  const modal  = document.getElementById("description-modal");
+  const actual = document.getElementById("description");
+  const inner  = modal.querySelector("#description-inner");
+  inner.value  = actual.value;
+  originalDesc = inner.value;
+  modal.classList.remove("hidden");
+};
+
+window.hideDescModal = function() {
+  const modal = document.getElementById("description-modal");
+  modal.querySelector("#description-inner").value = originalDesc;
+  originalDesc                                    = null;
+  modal.classList.add("hidden");
+};
+
 let originalStarter = null;
 
 window.showStarterModal = function() {
@@ -65,7 +83,7 @@ window.showStarterModal = function() {
   modal.classList.remove("hidden");
 };
 
-window.hideModal = function() {
+window.hideStarterModal = function() {
   const modal = document.getElementById("starter-modal");
   modal.querySelector("#starter-code-inner").value = originalStarter;
   originalStarter                                  = null;
@@ -129,12 +147,19 @@ document.getElementById("starter-code-file").oninput = function(e) {
 
 };
 
-document.getElementById("item-save-button").onclick = function() {
+document.getElementById("desc-save-button").onclick = () => {
+  const elem = document.getElementById("description-inner");
+  const desc = elem.value;
+  document.getElementById("description").value = desc;
+  hideDescModal();
+};
+
+document.getElementById("code-save-button").onclick = () => {
   const elem    = document.getElementById("starter-code-inner");
   const starter = elem.value;
   document.getElementById("starter-code").value = starter;
-  hideModal();
-}
+  hideStarterModal();
+};
 
 document.getElementById("sorting-type").addEventListener("change", (e) => {
   window.refreshSorting();
@@ -145,7 +170,12 @@ document.getElementById("sesh-name-input").addEventListener("input", (e) => {
 });
 
 // On Esc, hide the modal
-document.addEventListener('keyup', function(e) { if (e.keyCode === 27) { hideModal(); } });
+document.addEventListener('keyup', (e) => {
+  if (e.keyCode === 27) {
+    hideDescModal();
+    hideStarterModal();
+  }
+});
 
 document.getElementById("mode-auto").addEventListener("change", (e) => {
   document.getElementById("mode-value").innerText = "Auto (-)";
