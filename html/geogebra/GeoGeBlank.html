@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <meta charset="utf-8"/>
+    <script src="https://cdn.geogebra.org/apps/deployggb.js"></script>
+  </head>
+  <body>
+    <div id="ggbApplet" style="width:100%; height:100%"></div>
+  </body>
+  <script src="base-starter.js"></script>
+  <script>
+    // is3D=is 3D applet using 3D view, AV=Algebra View, SV=Spreadsheet View, CV=CAS View, EV2=Graphics View 2, CP=Construction Protocol, PC=Probability Calculator DA=Data Analysis, FI=Function Inspector, macro=Macros
+    const views   = { 'is3D': 0,'AV': 0,'SV': 0,'CV': 0,'EV2': 0,'CP': 1,'PC': 0,'DA': 0,'FI': 0,'macro': 0 };
+    const applet  = new GGBApplet(window.baseStarter, '5.0', views);
+    window.onload = function() { applet.inject('ggbApplet'); };
+    applet.setPreviewImage('data:image/gif;base64,R0lGODlhAQABAAAAADs=','https://www.geogebra.org/images/GeoGebra_loading.png','https://www.geogebra.org/images/applet_play.png');
+  </script>
+</html>

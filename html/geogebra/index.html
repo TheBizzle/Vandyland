@@ -1,0 +1,115 @@
+<html>
+
+  <head>
+    <title>Gallery for GeoGebra Classroom Activities</title>
+    <link href="/html/common/modal/main.css" rel="stylesheet">
+    <link href="./modal-overrides.css"       rel="stylesheet">
+  </head>
+
+  <script src="/html/common/globals.js"></script>
+  <script src="/html/common/jquery-latest.js"></script>
+  <script src="/html/common/jquery-ui-latest.js"></script>
+  <script src="/html/common/jquery.layout-latest.js"></script>
+
+  <link href="/html/common/material-icons.css" rel="stylesheet">
+  <link href="/html/common/materialize.min.css" rel="stylesheet">
+  <script src="/html/common/materialize.min.js"></script>
+
+  <body>
+
+    <iframe class="ui-layout-west"   id="gallery_frame" src="Vandyland.html"  height="100%" width="20%"  style="border: 2px solid black;"></iframe>
+    <iframe class="ui-layout-center" id="geoge_frame"   src="GeoGeBlank.html" height="100%" width="100%" style="border: 2px solid black; margin-left: -2px;" allow="geolocation"></iframe>
+
+    <div id="publish-info" class="modal">
+      <div class="modal-content">
+        <h4>Publish to Gallery</h4>
+        <div class="row" style="width: 100%">
+          <form class="col s12">
+            <div class="row">
+              <div class="input-field col s12">
+                <input id="username" type="text" class="validate">
+                <label for="username">Username</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s12">
+                <textarea id="description" type="text" class="materialize-textarea validate"></textarea>
+                <label for="description">Description</label>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a class="modal-action modal-close waves-effect waves-green btn-flat cancel-btn">Cancel</a>
+        <a class="modal-action modal-close waves-effect waves-green btn-flat publish-btn">Publish</a>
+      </div>
+    </div>
+
+    <div id="item-details" class="our-modal hidden">
+      <div class="our-modal-content">
+        <div class="item-details-header">
+          <span class="close" onclick="hideModal()">&times;</span>
+          <h4 id="item-header"></h4>
+        </div>
+        <div id="item-details-body" class="item-details-body">
+          <div class="item-details-content">
+            <div class="item-image-wrapper">
+              <img id="item-details-image" class="item-details-image">
+            </div>
+            <div class="item-details-controls">
+              <input id="item-download-button" class="item-details-button" type="button" value="Load">
+            </div>
+            <div>
+              <span style="font-weight: bold; font-size: 24px;">Summary</span>: <span id="item-summary" style="font-size: 24px;"></span>
+            </div>
+            <div id="item-comment-area" class="item-comment-area">
+              <div id="item-top-level-comment-group">
+                <div contenteditable id="item-top-level-comment-box" class="comment-box"></div>
+                <div class="comment-controls">
+                  <input id="top-level-author"      type="text"   class="author-input" placeholder="Your name...">
+                  <input id="top-level-cancel-btn"  type="button" class="comment-control-button" value="Clear"   onclick=" clearCommentFrom('item-top-level-comment-group')">
+                  <input id="top-level-comment-btn" type="button" class="comment-control-button" value="Comment" onclick="submitCommentFrom('item-top-level-comment-group')">
+                </div>
+              </div>
+              <div id="item-comments" class="item-comments">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="item-details-footer"></div>
+      </div>
+    </div>
+
+    <template id="comment-template">
+      <div class="comment">
+        <div class="comment-text"></div>
+        <div class="comment-by-line">
+          <div class="comment-author"></div>
+          <div class="comment-time"></div>
+        </div>
+      </div>
+    </template>
+
+    <template id="deleter-template">
+      <div class="deleter">
+        <div class="deleter-main">
+          <div class="deleter-x-part deleter-x-1"></div>
+          <div class="deleter-x-part deleter-x-2"></div>
+        </div>
+      </div>
+    </template>
+
+    <div>
+      <a id="gallerybutton" class="btn-floating btn-large waves-effect waves-light green" style="position: absolute; bottom: 24px; left: 8px;">
+        <i class="material-icons" onclick="onPublishClicked()">add_a_photo</i>
+      </a>
+    </div>
+
+  </body>
+
+  <script src="jq-stuff.js"></script>
+  <script src="init.js"></script>
+  <script src="/html/common/modal/main.js"></script>
+
+</html>
