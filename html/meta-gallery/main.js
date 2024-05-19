@@ -11,9 +11,53 @@ window.submitToView = function(e) {
     case "submit-moderator":
       window.open(`/html/${data.template}/moderation/#${data.sessionName}`, "_blank");
       break;
+    case "clone-button":
+      uploadAnother(data);
+      break;
     default:
       console.error(`Unknown submitter: ${e.submitter.name}`);
   }
+};
+
+// (DOMStringMap) => Unit
+const uploadAnother = ({ description, isPrescreened, sessionName, template }) => {
+
+  const newName = window.prompt("Customize the name", sessionName);
+  if (newName !== null) {
+
+    const newDesc = window.prompt("Customize the description", description);
+    if (newDesc !== null) {
+
+      fetch(`/starter-config/${sessionName}`, { method: "GET" }).then(
+        (res) => {
+          if (res.status === 200) {
+            return res.text();
+          } else {
+            return "";
+          }
+        }
+      ).then(
+        (starterConfig) => {
+
+          const token      = window.localStorage.getItem("mod-token");
+          const configFile = new Blob([starterConfig], { type: "text/plain" });
+
+          submitNewSession( newName, template, isPrescreened, token
+                          , configFile, newDesc).then(
+            (response) => {
+              if (!response.ok) {
+                response.text().then((reason) => alert(`Could not create new session.  ${reason}`));
+              }
+            }
+          );
+
+        }
+      );
+
+    }
+
+  }
+
 };
 
 // ( String, String, Boolean, UUID
@@ -125,6 +169,7 @@ let render = function(values) {
 
       document.getElementById("submit-student"  ).disabled  = false;
       document.getElementById("submit-moderator").disabled  = !isPrescreened;
+      document.getElementById("clone-button"    ).disabled  = false;
 
     };
 

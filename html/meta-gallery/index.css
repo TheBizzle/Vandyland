@@ -151,6 +151,14 @@
   row-gap:        10px;
 }
 
+#clone-button {
+  background-color: #ffff7b;
+}
+
+#clone-button[disabled] {
+  background-color: var(--disabled-bg);
+}
+
 #sorting-hat {
   display:        flex;
   flex-direction: column;
