@@ -16,23 +16,35 @@ window.submitToView = function(e) {
   }
 };
 
+// ( String, String, Boolean, UUID
+// , Blob, String) => Promise[Response]
+const submitNewSession = ( sessionID, templateName, getsPrescreened, token
+                         , configFile, description) => {
+  let postData = new FormData();
+  postData.append("gets-prescreened", getsPrescreened);
+  postData.append("token"           , token);
+  postData.append("config"          , configFile, "config");
+  postData.append("description"     , description);
+  const options = { method: "POST", body: postData };
+  return fetch(`/new-session/${templateName}/${sessionID}`, options);
+};
+
 // (Event) => Unit
 window.submitToInit = function(e) {
 
   e.preventDefault();
 
-  let initForm  = document.getElementById("init-form");
-  let formData  = new FormData(initForm);
-  let sessionID = formData.get("name");
-  let template  = formData.get("galleryTemplate");
+  const initForm        = document.getElementById("init-form");
+  const formData        = new FormData(initForm);
+  const sessionID       = formData.get("name");
+  const template        = formData.get("galleryTemplate");
+  const getsPrescreened = formData.get("galleryMode") === "prescreen";
+  const token           = window.localStorage.getItem("mod-token");
+  const configFile      = new Blob([formData.get("galleryConfig")], { type: "text/plain" });
+  const description     = formData.get("description");
 
-  let postData = new FormData();
-  postData.append("gets-prescreened", formData.get("galleryMode") === "prescreen");
-  postData.append("token"           , window.localStorage.getItem("mod-token"));
-  postData.append("config"          , new Blob([formData.get("galleryConfig")], { type: "text/plain" }), "config");
-  postData.append("description"     , formData.get("description"));
-
-  fetch(`/new-session/${template}/${sessionID}`, { method: "POST", body: postData }).then(
+  submitNewSession( sessionID, template, getsPrescreened, token
+                  , configFile, description).then(
     (response) => {
       if (!response.ok)
         response.text().then((reason) => alert(`Could not create new session.  ${reason}`));
