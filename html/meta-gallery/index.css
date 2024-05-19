@@ -87,6 +87,10 @@
   grid-area:  desc;
 }
 
+#gallery-template {
+  max-width: 305px;
+}
+
 #starter-button {
   align-self: stretch;
   grid-area:  config;
