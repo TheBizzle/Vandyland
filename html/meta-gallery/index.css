@@ -1,3 +1,7 @@
+:root {
+  --disabled-bg: #aaaaaa;
+}
+
 #section-container {
   display:        flex;
   flex-direction: column;
@@ -185,7 +189,7 @@
 }
 
 #submit-student[disabled] {
-  background-color: #aaaaaa;
+  background-color: var(--disabled-bg);
 }
 
 #submit-moderator {
@@ -193,7 +197,7 @@
 }
 
 #submit-moderator[disabled] {
-  background-color: #aaaaaa;
+  background-color: var(--disabled-bg);
 }
 
 form, input, select {
