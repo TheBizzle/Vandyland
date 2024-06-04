@@ -67,7 +67,7 @@ window.startSession = function(sessionName) {
               const parcel =
                 { content: starterConfig
                 , name:    "starter"
-                , type:    "import-ggb"
+                , type:    "import-project"
                 };
               parent.postMessage(parcel, "*");
             }

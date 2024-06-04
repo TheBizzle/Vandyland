@@ -57,7 +57,7 @@ window.startSession = function(sessionName) {
               const parcel =
                 { content: starterConfig
                 , name: "starter"
-                , type: "import-blocks"
+                , type: "import-project"
                 };
               parent.postMessage(parcel, "*");
             }

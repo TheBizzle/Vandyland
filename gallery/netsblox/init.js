@@ -49,7 +49,7 @@ netsFrame.src = `${starterProject}&Username=${un}&ProjectName=${pn}&editMode=tru
 
 let receiveMessage = function(event) {
   switch (event.data.type) {
-    case "import-blocks":
+    case "import-project":
       event.data.type = "import";
       if (netsHasLoaded) {
         netsFrame.contentWindow.postMessage(event.data, "*");

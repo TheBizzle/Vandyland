@@ -48,7 +48,7 @@ window.showModal = function({ sessionName, uploadName, metadata, data, comments,
 
   document.getElementById("item-header"         ).innerText = metadata.uploader === null ? "Anonymous project" : "Project by " + metadata.uploader;
   document.getElementById("item-details-image"  ).src       = image;
-  document.getElementById("item-download-button").onclick   = function() { parent.postMessage({ content: data, name: uploadName, type: "import-blocks" }, "*"); hideModal(); }
+  document.getElementById("item-download-button").onclick   = function() { parent.postMessage({ content: data, name: uploadName, type: "import-project" }, "*"); hideModal(); }
 
   document.getElementById("item-summary").innerText = metadata.description;
 

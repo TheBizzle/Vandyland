@@ -16,7 +16,7 @@ const peskyLoop =
 
 let receiveMessage = function(event) {
   switch (event.data.type) {
-    case "import-ggb":
+    case "import-project":
       const prefixed = event.data.content
       const base64   = prefixed.slice(prefixed.indexOf(",") + 1);
       if (geogeWindow.ggbApplet?.setBase64 !== undefined) {
