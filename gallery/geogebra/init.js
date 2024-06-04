@@ -40,11 +40,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.initializeLayout();
 
-  let sessionID = location.hash.slice(1);
+  let sessionID = decodeURIComponent(window.location.hash.slice(1));
   while (!sessionID) {
     sessionID = prompt("An activity space is required.\n\nPlease enter the name of a new or existing activity space:");
   }
-  location.hash = `#${sessionID}`;
+  window.location.hash = `#${sessionID}`;
 
 });
 
@@ -124,7 +124,7 @@ async function publishProject(username, description) {
   const xml       = await applet.getBase64();
   const base64    = await applet.getPNGBase64(0.5, true, undefined);
   const image     = `data:image/png;base64,${base64}`;
-  const sessionID = location.hash.slice(1);
+  const sessionID = decodeURIComponent(window.location.hash.slice(1));
 
   const metadata = JSON.stringify({ description, uploader: username });
 
