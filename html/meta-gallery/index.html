@@ -47,8 +47,6 @@
         <button id="approved-toggle" class="collapsible active ns" onclick="toggleCollapsible(this)">View</button>
         <div id="view-gallery-section" class="collapsible-content section active">
           <form id="view-form">
-            <div id="view-list">
-            </div>
             <div id="controls">
               <div id="details">
                 <div class="control-row"><span class="control-label">Name</span><span class="ns">:          </span><span id="control-name"        class="control-value">-</span></div>
@@ -72,6 +70,8 @@
                   <option>Template Name</option>
                 </select>
               </label>
+            </div>
+            <div id="view-list">
             </div>
           </form>
         </div>
@@ -137,6 +137,8 @@
     <template id="gallery-view-template">
       <div class="gallery-view-item">
         <div class="gallery-view-title"></div>
+        <div class="gallery-view-spacer"></div>
+        <div class="gallery-view-desc"></div>
       </div>
     </template>
 

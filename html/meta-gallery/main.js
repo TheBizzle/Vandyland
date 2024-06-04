@@ -130,7 +130,8 @@ let render = function(values) {
     let gView        = document.importNode(templateHTML.content, true).querySelector(".gallery-view-item");
 
     gView.querySelector(".gallery-view-title").innerText = galleryName;
-    gView.title                                          = galleryName;
+    gView.querySelector(".gallery-view-desc" ).innerText = description;
+    gView.title = `${galleryName} | ${description}`;
 
     gView.dataset.creationTime  = creationTime;
     gView.dataset.template      = template;

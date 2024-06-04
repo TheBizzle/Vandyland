@@ -126,15 +126,19 @@
   display:         flex;
   flex-direction:  row;
   justify-content: space-between;
-  margin:          25px 25px 30px 25px;
+  margin:          25px 0px 30px 25px;
   width:           100%;
 }
 
 #view-list {
   align-content: flex-start;
+  column-gap:    15px;
   display:       flex;
-  flex-flow:     row wrap;
-  gap:           15px;
+  flex-flow:     column;
+  flex-grow:     1;
+  height:        580px;
+  overflow-y:    scroll;
+  row-gap:       10px;
 }
 
 #controls {
@@ -231,6 +235,10 @@ form, input, select {
   width:     80%;
 }
 
+.collapsible-content {
+  overflow-y: hidden;
+}
+
 .control-label {
   font-weight: bold;
   user-select: none;
@@ -268,23 +276,34 @@ form, input, select {
   background-color: #eeeeee;
   border:           1px solid black;
   border-radius:    8px;
+  column-gap:       12px;
   display:          flex;
-  justify-content:  center;
-  overflow-wrap:    anywhere;
-  padding:          6px;
+  flex-direction:   row;
+  margin-right:     18px;
+  min-height:       80px;
   text-align:       center;
   text-overflow:    ellipsis;
   user-select:      none;
-  height:           145px;
-  width:            145px;
+}
+
+.gallery-view-desc {
+  display:            -webkit-box;
+  overflow:           hidden;
+  -webkit-line-clamp: 1;
+          line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.gallery-view-spacer {
+  border-right: 2px solid black;
+  height:       65%;
 }
 
 .gallery-view-title {
-   display:            -webkit-box;
-   overflow:           hidden;
-   -webkit-line-clamp: 3;
-           line-clamp: 3;
-   -webkit-box-orient: vertical;
+  margin-left:   20px;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  width:         20%;
 }
 
 .gallery-view-item:hover {
