@@ -8,4 +8,7 @@ import qualified Vandyland.BadgerState.Controller as BadgerState
 import qualified Vandyland.Gallery.Controller     as Gallery
 
 main :: IO ()
-main = quickHttpServe $ route (BadgerState.routes <> Gallery.routes) <|> dir "html" (serveDirectory "html")
+main = quickHttpServe $
+  route (BadgerState.routes <> Gallery.routes) <|>
+    dir "gallery" (serveDirectory "gallery") <|>
+    dir "html" (serveDirectory "html")

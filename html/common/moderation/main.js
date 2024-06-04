@@ -151,7 +151,7 @@ let syncUnapproved = function() {
   ).then(callback).catch(
     function(e) {
       alert("You are not authorized to moderate this session.");
-      window.location.href = '/html/basic';
+      window.location.href = '/gallery/basic';
     }
   );
 

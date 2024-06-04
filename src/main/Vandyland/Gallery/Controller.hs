@@ -240,8 +240,8 @@ handleGetStarterConfig =
 handleGetGalleryTypes :: Snap ()
 handleGetGalleryTypes =
   do
-    paths <- liftIO $ getDirectoryContents "html"
-    let truePaths = List.filter (not . (flip elem) [".", "..", "common", "meta-gallery"]) paths
+    paths <- liftIO $ getDirectoryContents "gallery"
+    let truePaths = List.filter (not . (flip elem) [".", ".."]) paths
     (encodeText &> (succeed "application/json")) truePaths
 
 handleAPIVersion :: Snap ()

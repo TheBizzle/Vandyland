@@ -6,10 +6,10 @@ window.submitToView = function(e) {
   let data      = selection.dataset;
   switch (e.submitter.id) {
     case "submit-student":
-      window.open(`/html/${data.template}/#${data.sessionName}`, "_blank");
+      window.open(`/gallery/${data.template}/#${data.sessionName}`, "_blank");
       break;
     case "submit-moderator":
-      window.open(`/html/${data.template}/moderation/#${data.sessionName}`, "_blank");
+      window.open(`/gallery/${data.template}/moderation/#${data.sessionName}`, "_blank");
       break;
     case "clone-button":
       uploadAnother(data);
