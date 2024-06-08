@@ -15,7 +15,7 @@ const loadProject = ([nlogo, name]) => {
 
 const peskyLoop =
   setInterval(() => {
-    if (myWindow.session !== undefined) {
+    if (myWindow.session !== null && myWindow.session !== undefined) {
       clearInterval(peskyLoop);
       if (waitingData !== null) {
         loadProject(waitingData);
@@ -27,7 +27,7 @@ let receiveMessage = function(event) {
   switch (event.data.type) {
     case "import-project":
       const parcel = [event.data.content, event.data.name];
-      if (myWindow.session !== undefined) {
+      if (myWindow.session !== null && myWindow.session !== undefined) {
         loadProject(parcel);
       } else {
         waitingData = parcel;
