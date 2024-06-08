@@ -122,7 +122,9 @@ document.getElementById("starter-code-file").oninput = function(e) {
         let isASCII = true;
 
         for (let i = 0; i < arr.length; i++) {
-          if (arr[i] > 127) {
+          // Checking for values <= 127 didn't suffice;
+          // The en-dash, for example, is in Extended ASCII at 377 AKA 0x226
+          if (arr[i] === 0) {
             isASCII = false;
             break;
           }
