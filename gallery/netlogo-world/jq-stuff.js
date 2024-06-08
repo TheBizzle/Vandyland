@@ -1,0 +1,1 @@
+../../html/common/gallery-base/jq-stuff.js
