@@ -12,7 +12,11 @@ const loadProject = ([str, name]) => {
   const worldMessage = { world, type: "nlw-import-world" };
 
   queryNLW("nlw-load-model", nlogoMessage).then(
-    () => { myWindow.postMessage(worldMessage, "*"); }
+    () => {
+      if (world !== null) {
+        myWindow.postMessage(worldMessage, "*");
+      }
+    }
   );
 
 };
@@ -29,13 +33,18 @@ const peskyLoop =
 
 let receiveMessage = function(event) {
   switch (event.data.type) {
+    case "import-starter":
+      const content = JSON.stringify({ nlogo: event.data.content, world: null });
+      const starter = [content, event.data.name];
+      if (myWindow.session !== null && myWindow.session !== undefined) {
+        loadProject(starter);
+      } else {
+        waitingData = starter;
+      }
+      break;
     case "import-project":
       const parcel = [event.data.content, event.data.name];
-      if (myWindow.session !== null && myWindow.session !== undefined) {
-        loadProject(parcel);
-      } else {
-        waitingData = parcel;
-      }
+      loadProject(parcel);
       break;
     case "nlw-resize":
       break;

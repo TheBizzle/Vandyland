@@ -15,6 +15,7 @@ const peskyLoop =
 
 let receiveMessage = function(event) {
   switch (event.data.type) {
+    case "import-starter":
     case "import-project":
       const prefixed = event.data.content
       const base64   = prefixed.slice(prefixed.indexOf(",") + 1);

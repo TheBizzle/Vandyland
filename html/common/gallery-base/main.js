@@ -69,7 +69,7 @@ window.startSession = function(sessionName) {
               const parcel =
                 { content: starterConfig
                 , name:    sessionName
-                , type:    "import-project"
+                , type:    "import-starter"
                 };
               parent.postMessage(parcel, "*");
             }

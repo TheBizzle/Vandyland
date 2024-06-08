@@ -25,6 +25,7 @@ const peskyLoop =
 
 let receiveMessage = function(event) {
   switch (event.data.type) {
+    case "import-starter":
     case "import-project":
       const parcel = [event.data.content, event.data.name];
       if (myWindow.session !== null && myWindow.session !== undefined) {
