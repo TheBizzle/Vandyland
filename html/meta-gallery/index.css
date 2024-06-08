@@ -286,24 +286,14 @@ form, input, select {
   user-select:      none;
 }
 
-.gallery-view-desc {
-  display:            -webkit-box;
-  overflow:           hidden;
-  -webkit-line-clamp: 1;
-          line-clamp: 1;
-  -webkit-box-orient: vertical;
-}
-
 .gallery-view-spacer {
   border-right: 2px solid black;
   height:       65%;
 }
 
 .gallery-view-title {
-  margin-left:   20px;
-  overflow:      hidden;
-  text-overflow: ellipsis;
-  width:         20%;
+  margin-left: 20px;
+  width:       20%;
 }
 
 .gallery-view-item:hover {
@@ -321,4 +311,12 @@ form, input, select {
 
 .section.active {
   border: 1px solid black;
+}
+
+.one-line {
+  display:            -webkit-box;
+  overflow:           hidden;
+  -webkit-line-clamp: 1;
+          line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
