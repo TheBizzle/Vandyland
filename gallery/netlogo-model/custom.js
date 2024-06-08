@@ -1,6 +1,8 @@
 const myFrame  = document.getElementById("embed_frame");
 const myWindow = myFrame.contentWindow;
 
+myFrame.src = "Embed.html?disableWorkInProgress";
+
 let waitingData = null;
 
 // ((String, String)) => Unit
