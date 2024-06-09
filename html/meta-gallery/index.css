@@ -279,8 +279,9 @@ form, input, select {
   column-gap:       12px;
   display:          flex;
   flex-direction:   row;
+  font-size:        21px;
   margin-right:     18px;
-  min-height:       80px;
+  min-height:       30px;
   text-align:       start;
   text-overflow:    ellipsis;
   user-select:      none;
