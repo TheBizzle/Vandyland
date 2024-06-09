@@ -131,3 +131,9 @@
   display:        flex;
   flex-direction: column;
 }
+
+#gallery-title {
+  margin-bottom: 20px;
+  margin-left:   auto;
+  margin-right:  auto;
+}

@@ -80,3 +80,5 @@ window.makeQueryString = function(obj, formElem) {
   let entries   = (formData.entries !== undefined) ? makeEntriesFromFormData(obj, formData) : makeEntriesShim(obj, formElem);
   return Array.from(entries).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(removeCRs(v))).join("&");
 }
+
+document.getElementById("gallery-title").innerText = getSessionName();
