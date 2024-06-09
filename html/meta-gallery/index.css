@@ -281,7 +281,7 @@ form, input, select {
   flex-direction:   row;
   margin-right:     18px;
   min-height:       80px;
-  text-align:       center;
+  text-align:       start;
   text-overflow:    ellipsis;
   user-select:      none;
 }
