@@ -129,7 +129,7 @@ let sync = function() {
 
         let label       = document.createElement("span");
         let boldStr     = (str) => `<span style="font-weight: bold;">${str}</span>`;
-        label.innerHTML = entry.metadata === null ? "Anonymous project" : `Project by ${metadata.uploader}`;
+        label.innerHTML = entry.metadata === null ? "Anonymous project" : `By: ${metadata.uploader}`;
         label.classList.add("upload-label")
 
         let container = document.createElement("div")
