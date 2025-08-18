@@ -9,7 +9,7 @@ let waitingData = null;
 const loadProject = ([nlogo, name]) => {
   const message =
     { nlogo
-    , path:  name
+    , path:  ""
     , type:  "nlw-load-model"
     };
   myWindow.postMessage(message, "*");

@@ -10,7 +10,7 @@ const loadProject = ([str, name]) => {
 
   const { nlogo, world } = JSON.parse(str);
 
-  const nlogoMessage = { nlogo, path: name };
+  const nlogoMessage = { nlogo, path: "" };
   const worldMessage = { world, type: "nlw-import-world" };
 
   queryNLW("nlw-load-model", nlogoMessage).then(
