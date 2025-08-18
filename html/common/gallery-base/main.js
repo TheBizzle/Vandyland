@@ -103,7 +103,7 @@ let sync = function() {
         let metadata = JSON.parse(entry.metadata);
         let img = document.createElement("img");
         img.classList.add("upload-image");
-        img.title   = metadata === null ? "Anonymous project" : `Click to view project by ${metadata.uploader}`;
+        img.title   = metadata === null ? "No description available project" : `${metadata.description}`;
         img.src     = entry.base64Image;
         img.onclick = () => {
           let dataPromise     = fetch(`${window.thisDomain}/uploads/${ getSessionName()}/${entry.uploadName}`).then(x => x.text());
