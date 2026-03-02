@@ -31,5 +31,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-stack-
 
+      - name: Set up dummy DB files
+        run: |
+          touch .db_username
+          touch .db_password
+
       - name: Run tests
         run: stack test
