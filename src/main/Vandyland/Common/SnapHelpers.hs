@@ -1,25 +1,20 @@
 {-# LANGUAGE TupleSections #-}
-module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle4, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads) where
+module Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asInt, asNonNegInt, asUUID, Constraint(Constraint), decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle4, handle5, notEmpty, notifyBadParams, succeed, withFileUploads) where
 
 import Codec.Compression.Zlib.Internal(decompressST, defaultDecompressParams, foldDecompressStreamWithInput, gzipFormat)
 
 import Control.Lens((#))
 
 import Data.Aeson(decode, encode, FromJSON, ToJSON)
-import Data.Bifoldable(bimapM_)
-import Data.ByteString(ByteString)
 import Data.Text.Encoding(decodeUtf8, encodeUtf8)
-import Data.Traversable(traverse)
 import Data.UUID(UUID)
-import Data.Validation(_Failure, _Success, Validation(Success, Failure))
+import Data.Validation(_Failure, _Success)
 
 import Snap.Core(getParam, method, Method, modifyResponse, setContentType, setResponseStatus, Snap, writeText)
 import Snap.Util.CORS(applyCORS, defaultOptions)
 import Snap.Util.FileUploads(defaultFileUploadPolicy, defaultUploadPolicy, FormFile(formFileValue), handleFormUploads, PartInfo(partFileName), setMaximumFileSize, setMaximumFormInputSize, storeAsLazyByteString)
 
 import System.IO.Streams(InputStream)
-
-import Text.Read(readMaybe)
 
 import qualified Data.ByteString.Lazy    as LazyByteString
 import qualified Data.Map                as Map
@@ -148,8 +143,8 @@ asUUID = Constraint $ buildConstraint UUID.fromText
 free :: Constraint Text
 free = Constraint $ const (_Success #)
 
-nonEmpty :: Constraint Text
-nonEmpty = Constraint $ (\paramName x -> case x of
+notEmpty :: Constraint Text
+notEmpty = Constraint $ (\paramName x -> case x of
                                               "" -> _Failure # [(decodeUtf8 paramName) <> " cannot be empty"]
                                               y  -> _Success # y)
 

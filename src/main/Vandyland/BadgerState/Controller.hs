@@ -1,6 +1,5 @@
 module Vandyland.BadgerState.Controller(routes) where
 
-import Data.ByteString(ByteString)
 import Data.Time(UTCTime)
 import Data.Time.Clock.POSIX(posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 
@@ -9,7 +8,7 @@ import qualified Data.UUID as UUID
 import Snap.Core(Method(GET, POST), Snap, writeText)
 import Snap.Util.GZip(withCompression)
 
-import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asNonNegInt, asUUID, encodeText, failWith, handle1, handle2, handle3, nonEmpty, succeed)
+import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asNonNegInt, asUUID, encodeText, failWith, handle1, handle2, handle3, notEmpty, succeed)
 
 import Vandyland.BadgerState.Database(joinGroup, readDataFor, readGroup, readNDataFor, readSignalFor, writeData, writeSignal)
 import Vandyland.BadgerState.Datum(Datum(Datum))
@@ -26,37 +25,37 @@ routes = [ ("badgerstate/join/:group-id"                     , withCompression $
 
 handleJoinGroup :: Snap ()
 handleJoinGroup =
-  handle1 (Arg "group-id" nonEmpty) $
+  handle1 (Arg "group-id" notEmpty) $
     joinGroup &> liftIO &>= (UUID.toText &> (succeed "text/plain"))
 
 handleListGroup :: Snap ()
 handleListGroup =
-  handle1 (Arg "group-id" nonEmpty) $
+  handle1 (Arg "group-id" notEmpty) $
     readGroup &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handlePostData :: Snap ()
 handlePostData =
-  handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "data" nonEmpty) $
+  handle3 (Arg "group-id" notEmpty, Arg "bucket-id" asUUID, Arg "data" notEmpty) $
     (uncurry3 writeData) &> liftIO &>= (timeToText &> (succeed "text/plain"))
 
 handleFetchData :: Snap ()
 handleFetchData =
-  handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "ts" asNonNegInt) $
+  handle3 (Arg "group-id" notEmpty, Arg "bucket-id" asUUID, Arg "ts" asNonNegInt) $
     (\(g, b, t) -> readDataFor g b $ intToTime t) &> liftIO &>= ((map mkDatum) &> encodeText &> (succeed "application/json"))
 
 handleFetchNData :: Snap ()
 handleFetchNData =
-  handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "n" asNonNegInt) $
+  handle3 (Arg "group-id" notEmpty, Arg "bucket-id" asUUID, Arg "n" asNonNegInt) $
     (uncurry3 readNDataFor) &> liftIO &>= ((map mkDatum) &> encodeText &> (succeed "application/json"))
 
 handlePostSignal :: Snap ()
 handlePostSignal =
-  handle3 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID, Arg "signal" nonEmpty) $
+  handle3 (Arg "group-id" notEmpty, Arg "bucket-id" asUUID, Arg "signal" notEmpty) $
     (uncurry3 writeSignal) &> liftIO &>= (timeToText &> (succeed "text/plain"))
 
 handleFetchSignal :: Snap ()
 handleFetchSignal =
-  handle2 (Arg "group-id" nonEmpty, Arg "bucket-id" asUUID) $ (\(groupID, bucketID) ->
+  handle2 (Arg "group-id" notEmpty, Arg "bucket-id" asUUID) $ (\(groupID, bucketID) ->
     (readSignalFor groupID bucketID) |> (liftIO &>=
       maybe (failWith 404 (writeText $ "No signal for " <> groupID <> "/" <> (UUID.toText bucketID) <> ""))
             (\(signal, timestamp) -> succeed "text/plain" ((timeToText timestamp) <> " | " <> signal)))
@@ -69,7 +68,7 @@ timeToText :: UTCTime -> Text
 timeToText = timeToInteger &> showText
 
 timeToInteger :: UTCTime -> Integer
-timeToInteger = utcTimeToPOSIXSeconds &> (* 1000000) &> floor
+timeToInteger = utcTimeToPOSIXSeconds &> (* 1e6) &> floor
 
 intToTime :: Int -> UTCTime
-intToTime = fromIntegral &> (/ 1000000) &> posixSecondsToUTCTime
+intToTime = fromIntegral &> (* 1e-6) &> posixSecondsToUTCTime

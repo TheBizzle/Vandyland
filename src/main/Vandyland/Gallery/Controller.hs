@@ -2,9 +2,8 @@ module Vandyland.Gallery.Controller(routes) where
 
 import Control.Lens((#))
 
-import Data.Bifoldable(bimapM_)
-import Data.ByteString(ByteString)
-import Data.Validation(_Failure, _Success, Validation)
+import Data.CaseInsensitive(CI)
+import Data.Validation(_Failure, _Success)
 
 import qualified Data.List          as List
 import qualified Data.Map           as Map
@@ -17,7 +16,7 @@ import Snap.Util.GZip(withCompression)
 
 import System.Directory(getDirectoryContents)
 
-import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, nonEmpty, notifyBadParams, succeed, withFileUploads)
+import Vandyland.Common.SnapHelpers(allowingCORS, Arg(Arg), asBool, asUUID, decodeText, encodeText, failWith, free, getParamV, getParamVM, handle1, handle2, handle3, handle5, notEmpty, notifyBadParams, succeed, withFileUploads)
 
 import Vandyland.Gallery.Database(approveSubmission, forbidSubmission, PrivilegedActionResult(Fulfilled, NotAuthorized, NotFound), readCommentsFor, readGalleryListings, readSessionExists, readStarterConfigFor, readSubmissionData, readSubmissionsLite, readSubmissionListings, readSubmissionListingsForModeration, registerNewSession, suppressSubmission, readTemplateName, uniqueSessionName, writeComment, writeSubmission)
 import Vandyland.Gallery.Submission(Submission(Submission), SubmissionSendable(SubmissionSendable))
@@ -53,12 +52,12 @@ routes = [ ("echo/:param"                                   ,      ac POST   han
     ac = allowingCORS
 
 handleEchoData :: Snap ()
-handleEchoData = handle1 (Arg "param" nonEmpty) $ \param -> withFileUploads $ \fileMap -> do
+handleEchoData = handle1 (Arg "param" notEmpty) $ \param -> withFileUploads $ \fileMap -> do
   prm <- getParam $ TextEncoding.encodeUtf8 param
   maybe (notifyBadParams [param]) writeText ((map TextEncoding.decodeUtf8 prm) <|> (Map.lookup param fileMap))
 
 handleNewSession :: Snap ()
-handleNewSession = handle1 (Arg "template" nonEmpty) $ \template ->
+handleNewSession = handle1 (Arg "template" notEmpty) $ \template ->
   do
     name <- liftIO $ uniqueSessionName
     _handleNewSessionWithParams (template, name, False, Nothing, "", Nothing)
@@ -67,9 +66,9 @@ handleNewSessionWithParams :: Snap ()
 handleNewSessionWithParams = withFileUploads $ \fileMap ->
   do
     gps      <- getParamVM fileMap $ Arg "gets-prescreened" asBool
-    template <- getParamVM fileMap $ Arg "template"         nonEmpty
+    template <- getParamVM fileMap $ Arg "template"         notEmpty
     token    <- getParamVM fileMap $ Arg "token"            asUUID
-    sid      <- getParamVM fileMap $ Arg "session-id"       nonEmpty
+    sid      <- getParamVM fileMap $ Arg "session-id"       notEmpty
     desc     <- getParamVM fileMap $ Arg "description"      free
     let config   = map genConfigMaybe $ lookupParam "config" fileMap
     let tupleV = (,,,,,) <$> template <*> sid <*> gps <*> config <*> desc <*> (map Just token)
@@ -83,15 +82,15 @@ handleListGalleries = handle1 (Arg "token" asUUID) $
   readGalleryListings &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleListSession :: Snap ()
-handleListSession = handle1 (Arg "session-id" nonEmpty) $
+handleListSession = handle1 (Arg "session-id" notEmpty) $
   readSubmissionListings &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleSessionExists :: Snap ()
-handleSessionExists = handle1 (Arg "session-id" nonEmpty) $
+handleSessionExists = handle1 (Arg "session-id" notEmpty) $
   readSessionExists &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleListSessionForModeration :: Snap ()
-handleListSessionForModeration = handle2 (Arg "session-id" nonEmpty, Arg "token" asUUID) $ \(sid, token) ->
+handleListSessionForModeration = handle2 (Arg "session-id" notEmpty, Arg "token" asUUID) $ \(sid, token) ->
   do
     result <- liftIO $ readSubmissionListingsForModeration sid token
     case result of
@@ -103,7 +102,7 @@ handleListSessionForModeration = handle2 (Arg "session-id" nonEmpty, Arg "token"
 
 handleDownloadItem :: Snap ()
 handleDownloadItem =
-  handle2 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty) $ \ps@(sid, iid) ->
+  handle2 (Arg "session-id" notEmpty, Arg "item-id" notEmpty) $ \ps@(sid, iid) ->
     do
       dataResult <- liftIO $ readSubmissionData sid iid Nothing
       case dataResult of
@@ -113,7 +112,7 @@ handleDownloadItem =
 
 handleDownloadItemWithToken :: Snap ()
 handleDownloadItemWithToken =
-  handle3 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty, Arg "token" asUUID) $ \ps@(sid, iid, token) ->
+  handle3 (Arg "session-id" notEmpty, Arg "item-id" notEmpty, Arg "token" asUUID) $ \ps@(sid, iid, token) ->
     do
       dataResult <- liftIO $ readSubmissionData sid iid $ Just token
       case dataResult of
@@ -123,7 +122,7 @@ handleDownloadItemWithToken =
 
 handleSuppressItem :: Snap ()
 handleSuppressItem =
-  handle3 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty, Arg "token" asUUID) $ \(sid, iid, token) ->
+  handle3 (Arg "session-id" notEmpty, Arg "item-id" notEmpty, Arg "token" asUUID) $ \(sid, iid, token) ->
     do
       result <- liftIO $ suppressSubmission sid iid token
       case result of
@@ -133,7 +132,7 @@ handleSuppressItem =
 
 handleApproveItem :: Snap ()
 handleApproveItem =
-  handle3 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty, Arg "token" asUUID) $ \(sid, iid, token) ->
+  handle3 (Arg "session-id" notEmpty, Arg "item-id" notEmpty, Arg "token" asUUID) $ \(sid, iid, token) ->
     do
       result <- liftIO $ approveSubmission sid iid $ token
       case result of
@@ -143,7 +142,7 @@ handleApproveItem =
 
 handleForbidItem :: Snap ()
 handleForbidItem =
-  handle3 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty, Arg "token" asUUID) $ \(sid, iid, token) ->
+  handle3 (Arg "session-id" notEmpty, Arg "item-id" notEmpty, Arg "token" asUUID) $ \(sid, iid, token) ->
     do
       result <- liftIO $ forbidSubmission sid iid $ token
       case result of
@@ -162,7 +161,7 @@ genToken = UUIDGen.nextRandom <&> UUID.toText
 
 handleSubmissionsLite :: Snap ()
 handleSubmissionsLite =
-  handle2 (Arg "session-id" nonEmpty, Arg "names" free) $ \(sessionID, namesText) ->
+  handle2 (Arg "session-id" notEmpty, Arg "names" free) $ \(sessionID, namesText) ->
     do
       let names = decodeText namesText :: Maybe [Text]
       maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText))
@@ -173,7 +172,7 @@ handleSubmissionsLite =
 
 handleSubmissionsLiteWithToken :: Snap ()
 handleSubmissionsLiteWithToken =
-  handle3 (Arg "session-id" nonEmpty, Arg "names" free, Arg "token" asUUID) $ \(sessionID, namesText, token) ->
+  handle3 (Arg "session-id" notEmpty, Arg "names" free, Arg "token" asUUID) $ \(sessionID, namesText, token) ->
     do
       let names = decodeText namesText :: Maybe [Text]
       maybe (failWith 422 (writeText $ "Parameter 'names' is invalid JSON: " <> namesText))
@@ -199,8 +198,8 @@ handleUploadFile = withFileUploads $ \fileMap -> handleUploadHelper (lookupParam
 handleUploadHelper :: Validation [Text] Text -> Validation [Text] Text -> Map Text Text -> Snap ()
 handleUploadHelper datum image fileMap =
   do
-    sessionID <- getParamVM fileMap $ Arg "session-id" nonEmpty
-    metadata  <- getParamVM fileMap $ Arg "metadata"   nonEmpty
+    sessionID <- getParamVM fileMap $ Arg "session-id" notEmpty
+    metadata  <- getParamVM fileMap $ Arg "metadata"   notEmpty
     token     <- getParamVM fileMap $ Arg "token"      asUUID
     let tupleV = (,,,,) <$> sessionID <*> image <*> (defaultOnV token) <*> (defaultOnV metadata) <*> datum
     bimapM_ notifyBadParams ((uncurry5 writeSubmission) &> liftIO &>= writeText) tupleV
@@ -208,11 +207,11 @@ handleUploadHelper datum image fileMap =
     defaultOnV v = (map Just v) <> (_Success # Nothing)
 
 handleGetComments :: Snap ()
-handleGetComments = handle2 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty) $ (uncurry readCommentsFor) &> liftIO &>= (encodeText &> (succeed "application/json"))
+handleGetComments = handle2 (Arg "session-id" notEmpty, Arg "item-id" notEmpty) $ (uncurry readCommentsFor) &> liftIO &>= (encodeText &> (succeed "application/json"))
 
 handleSubmitComment :: Snap ()
 handleSubmitComment =
-  handle5 (Arg "session-id" nonEmpty, Arg "item-id" nonEmpty, Arg "comment" nonEmpty, Arg "author" nonEmpty, Arg "parent" free) $
+  handle5 (Arg "session-id" notEmpty, Arg "item-id" notEmpty, Arg "comment" notEmpty, Arg "author" notEmpty, Arg "parent" free) $
     \(sessionName, uploadName, comment, author, parent) ->
       do
         liftIO $ writeComment comment uploadName sessionName author (UUID.fromText parent)
@@ -220,7 +219,7 @@ handleSubmitComment =
 
 handleGetTemplateName :: Snap ()
 handleGetTemplateName =
-  handle1 (Arg "session-id" nonEmpty) $ \(sid) ->
+  handle1 (Arg "session-id" notEmpty) $ \(sid) ->
     do
       tNameMaybe <- liftIO $ readTemplateName sid
       case tNameMaybe of
@@ -229,7 +228,7 @@ handleGetTemplateName =
 
 handleGetStarterConfig :: Snap ()
 handleGetStarterConfig =
-  handle1 (Arg "session-id" nonEmpty) $ \galleryName ->
+  handle1 (Arg "session-id" notEmpty) $ \galleryName ->
     do
       starterMaybe <- liftIO $ readStarterConfigFor galleryName
       case starterMaybe of
