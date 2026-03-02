@@ -42,12 +42,10 @@ Library
     Vandyland.BadgerState.Datum,
     Vandyland.Common.DBCredentials,
     Vandyland.Common.SnapHelpers,
-    Vandyland.Gallery.Auth,
     Vandyland.Gallery.Comment,
     Vandyland.Gallery.Database,
-    Vandyland.Gallery.RandGen,
-    Vandyland.Gallery.Submission,
-    Vandyland.Gallery.WebReq
+    Vandyland.Gallery.NameGen,
+    Vandyland.Gallery.Submission
   Build-Depends:
     aeson                     >= 2.2.3   && < 2.3.0,
     bifunctors                >= 5.6.2   && < 5.7,
